@@ -1,63 +1,44 @@
-
-
-import login_hf
-import torch
 import os
-import transformers
-
-from transformers import AutoModelForCausalLM, AutoTokenizer
+from utils import *
+import login_hf
+from llama_class import *
+import torch
+# EPO libraries
+from epo.tipdata.epab import EPABClient
 
 login_hf.login_to_hf()
 
-class Llama3:
-    def __init__(self, model_path):
-        self.model_id = model_path
-        self.pipeline = transformers.pipeline(
-            "text-generation",
-            model=self.model_id,
-            device=0,
-            model_kwargs={
-                "torch_dtype": torch.float16, # In float16 or else does not fit in memory.
-                "low_cpu_mem_usage": True,
-            },
-        )
-        self.terminators = [
-            self.pipeline.tokenizer.eos_token_id,
-            self.pipeline.tokenizer.convert_tokens_to_ids("<|eot_id|>"),
-        ]
-  
-    def get_response(
-          self, query, message_history=[], max_tokens=4096, temperature=0.6, top_p=0.9
-      ):
-        user_prompt = message_history + [{"role": "user", "content": query}]
-        prompt = self.pipeline.tokenizer.apply_chat_template(
-            user_prompt, tokenize=False, add_generation_prompt=True
-        )
-        print(prompt)
-        outputs = self.pipeline(
-            prompt,
-            max_new_tokens=max_tokens,
-            eos_token_id=self.terminators,
-            do_sample=True,
-            temperature=temperature,
-            top_p=top_p,
-        )
-        print(outputs)
-        response = outputs[0]["generated_text"][len(prompt):]
-        return response, user_prompt + [{"role": "assistant", "content": response}]
-    
-            
-# define the system and user messages
-system_input = "You are an expert matplotlib programmer."
-user_input = "Give me the code for matplotlib to generate a diagram of a Box A with title Claim 1 and a Box B with title Claim 1.1 , box A points with an arrow towards box B"
-conversation = [{"role": "system", "content": system_input}]
+# Get EPO data
 
-# load the model and tokenizer
+# Start EPO Client
+epab = EPABClient(env='PROD')
+
+# Get patent by number
+
+q = epab.query_application_number("21198556")
+
+query_claims = q.get_results('claims', output_type='list')
+claim_text = query_claims[0]['claims'][0]['text']
+
+# Count number of claims
+number_of_claims = count_claims(claim_text)
+selected_claim = get_n_claim(claim_text, n_claim=1)
+clean_claim = epab.clean_text(selected_claim[0])
+
+print(clean_claim)
+
+# Initialize model
+# define the system and user messages
+system_input = "You are an expert patent summarizer."
+conversation = [{"role": "system", "content": system_input}]
+user_input = f"summarize the following claim and extract all related references: {clean_claim}"
+
 model_id = "meta-llama/Meta-Llama-3-8B-Instruct"
-llama3 = Llama3(model_id)
+llama3 = Llama3(model_id, 'cpu')
+torch.cuda.empty_cache()
+print('Processing requested prompt')
 response, conversation = llama3.get_response(user_input, conversation)
 
-print(response)
 
   
 # if __name__ == "__main__":
