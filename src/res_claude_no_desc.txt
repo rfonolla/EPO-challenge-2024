@@ -1,0 +1,29 @@
+{
+  "summary": "A device for estimating tooth rigid material thickness using light at two wavelengths, comprising a light source, sensor arrangement, and processor to analyze intensity maps and estimate thickness based on reflected and scattered light.",
+  "references": [
+    {
+      "num": "302",
+      "term": "tooth"
+    },
+    {
+      "num": "304",
+      "term": "pulp"
+    },
+    {
+      "num": "804",
+      "term": "light source arrangement"
+    },
+    {
+      "num": "806",
+      "term": "sensor arrangement"
+    },
+    {
+      "num": "502g",
+      "term": "first intensity map"
+    },
+    {
+      "num": "502r",
+      "term": "second intensity map"
+    }
+  ]
+}

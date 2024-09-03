@@ -1,44 +1,25 @@
 import os
-from utils import *
-import login_hf
-from llama_class import *
-import torch
-# EPO libraries
-from epo.tipdata.epab import EPABClient
+from getClaimInformation import *
+from run_llama3 import *
+from run_claude import *
+from getNumbers_from_Image import *
+import warnings
 
-login_hf.login_to_hf()
+warnings.simplefilter(action='ignore', category=FutureWarning)
 
-# Get EPO data
+if __name__ == "__main__":
 
-# Start EPO Client
-epab = EPABClient(env='PROD')
+    print('Obtaining Claim data')
+    description, claim, image = get_data__from_patent()
+    
+    print('Detecting numbers from selected image') # Recognize numbers from the image, this ideally needs to be done for each image
+    numbers_claim = get_numbers_from_Image(image)
 
-# Get patent by number
-
-q = epab.query_application_number("21198556")
-
-query_claims = q.get_results('claims', output_type='list')
-claim_text = query_claims[0]['claims'][0]['text']
-
-# Count number of claims
-number_of_claims = count_claims(claim_text)
-selected_claim = get_n_claim(claim_text, n_claim=1)
-clean_claim = epab.clean_text(selected_claim[0])
-
-print(clean_claim)
-
-# Initialize model
-# define the system and user messages
-system_input = "You are an expert patent summarizer."
-conversation = [{"role": "system", "content": system_input}]
-user_input = f"summarize the following claim and extract all related references: {clean_claim}"
-
-model_id = "meta-llama/Meta-Llama-3-8B-Instruct"
-llama3 = Llama3(model_id, 'cpu')
-torch.cuda.empty_cache()
-print('Processing requested prompt')
-response, conversation = llama3.get_response(user_input, conversation)
+    
+    print('Running claude')
+    run_claude(claim, numbers_claim, description)
+    # print('Running llama 3')
+    # run_llama3(claim, numbers_claim)
 
 
-  
-# if __name__ == "__main__":
+#  1) generate 2 images, one based on the claim itself and the other based on the claim + description

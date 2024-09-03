@@ -1,4 +1,6 @@
 import re
+from pynvml import *
+
 def count_claims(input_text):
     # Regular expression to match each claim in the text
     claim_pattern = r'<claim id="[^"]+" num="\d+"><claim-text>'
@@ -30,3 +32,13 @@ def get_n_claim(input_text, n_claim):
     
     # Return the number of claims found
     return claims
+
+def check_gpu_is_free():
+    nvmlInit()
+    h = nvmlDeviceGetHandleByIndex(0)
+    info = nvmlDeviceGetMemoryInfo(h)
+
+    if info.free*1e-9 > 12: #15 GB is llama3
+        return True
+    else:
+        return False
