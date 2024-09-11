@@ -1,5 +1,11 @@
 import re
 from pynvml import *
+import base64
+from PIL import Image as PILImage
+import io
+import cv2
+import easyocr
+import numpy as np
 
 def count_claims(input_text):
     # Regular expression to match each claim in the text
@@ -33,6 +39,15 @@ def get_n_claim(input_text, n_claim):
     # Return the number of claims found
     return claims
 
+def encode_image_array(pil_image):
+    # Save PIL Image to a byte stream
+    byte_stream = io.BytesIO()
+    pil_image.save(byte_stream, format='JPEG')
+    byte_stream.seek(0)
+    
+    # Encode to base64
+    return base64.b64encode(byte_stream.getvalue()).decode('utf-8')
+
 def check_gpu_is_free():
     nvmlInit()
     h = nvmlDeviceGetHandleByIndex(0)
@@ -42,3 +57,21 @@ def check_gpu_is_free():
         return True
     else:
         return False
+
+def get_numbers_from_Image(image):
+    
+    # Initialize the EasyOCR reader
+    reader = easyocr.Reader(['en'])  # Specify the language(s) for OCR
+
+    # Use EasyOCR to extract text from the image
+    result = reader.readtext(image, detail=0)  # detail=0 to get only the text
+    
+    # Join the detected text into a single string
+    text = " ".join(result)
+    
+    # Use regular expressions to extract alphanumeric sequences
+    numbers_claim = re.findall(r'\b\w+\b', text)
+
+    return numbers_claim
+
+
