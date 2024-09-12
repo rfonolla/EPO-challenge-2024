@@ -75,3 +75,24 @@ def get_numbers_from_Image(image):
     return numbers_claim
 
 
+def get_code_from_text(text):
+    # Split the text by lines and filter out non-code content
+    code_lines = []
+    in_code_block = False
+    
+    for line in text.splitlines():
+        # Check for the start or end of a code block
+        if "```python" in line or "```" in line:
+            in_code_block = not in_code_block
+            continue
+        
+        # If inside a code block, capture the lines
+        if in_code_block:
+            code_lines.append(line)
+    
+    # Join all captured code lines into a single code block
+    code_str = "\n".join(code_lines)
+
+    return code_str
+
+

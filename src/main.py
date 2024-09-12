@@ -3,12 +3,14 @@ from RAG_pipeline import *
 import utils
 import utilsEPO
 import warnings
+from image_generation_pipeline import *
 from login_claude import *
 
 warnings.simplefilter(action='ignore', category=FutureWarning)
 
 if __name__ == "__main__":
 
+    llm = Anthropic(model="claude-3-5-sonnet-20240620", temperature=0.0, max_tokens=1024)
 
     dict_args = { 'application_number': '21198556', 
              'claim_number':1,  
@@ -25,10 +27,11 @@ if __name__ == "__main__":
         numbers_claim = utils.get_numbers_from_Image(data_patent['images'])
     
     print('Running RAG Pipeline')
-    output_result = run_RAG_pipeline(claim_text = data_patent['claim_text'], 
-                                     description_text=data_patent['description_text']
-                                    print_prompt=True)
+    output_result = run_RAG_pipeline(llm = llm,
+                                     claim_text = data_patent['claim_text'], 
+                                     description_text=data_patent['description_text'],
+                                     print_prompt=False)
 
     print(output_result)
-
-#  1) generate 2 images, one based on the claim itself and the other based on the claim + description
+                                     
+    image_code = generate_image_from_code(output_result)                            
