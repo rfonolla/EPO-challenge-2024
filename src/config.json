@@ -3,10 +3,11 @@
     "temperature": 0.0,
     "max_tokens": 1024,
     "application_number": "21198556",
-    "claim_number": 2,
+    "claim_number": 1,
     "patent_description": false,
-    "patent_images": false,
+    "patent_images": true,
+    "output_filename": "test_output.svg",
     "prompt_template": "You are an expert patent examiner. Summarize the following claim: \n{information}\n",
-    "prompt_template_image": "Draw an image describing the following invention. Use colors, sizes, spatial orientation, position, and a legend to emphasize the essence of the invention. Generate the code for svgwriter in Python.\n{information}",
+    "prompt_template_image": "Draw an image describing the following invention. Use colors, sizes, spatial orientation, position, and a legend to emphasize the essence of the invention. Generate the code for svgwriter in Python. Name the image {output_filename} \n{information}",
     "print_prompt": true
 }
