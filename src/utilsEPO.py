@@ -31,11 +31,11 @@ def get_data_from_patent(**kwargs):
         print('Obtaining patent description')
         query_claims_description = q.get_results('claims, description', output_type='list')
         output_data['description_text']  = epab.clean_text(query_claims_description[0]['description']['text'])
-        claim_text = query_claims_description[0]['claims'][claim_number-1]['text']
+        claim_text = query_claims_description[0]['claims'][0]['text']
         
     else:
         query_claims_description = q.get_results('claims, description', output_type='list')
-        claim_text = query_claims_description[0]['claims'][claim_number-1]['text']
+        claim_text = query_claims_description[0]['claims'][0]['text']
 
 
     # Count number of claims

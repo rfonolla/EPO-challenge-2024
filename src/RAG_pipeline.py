@@ -62,7 +62,7 @@ class HierarchicalQueryEngine():
             description_nodes = self.description_index.as_retriever(similarity_top_k=description_k).retrieve(self._format_response(claim_nodes, ""))
         
             # Add extra instructions to the prompts
-            prompt_template = prompt_template.replace("{information}", "You can use the information of the patent description to enhance your answer:\n {information}")
+            prompt_template = prompt_template.replace("{information}", "You can use the information of the patent description to improve your answer:\n {information}")
             # Combine results from both indices
             combined_response = "Claims Information:\n"
             combined_response += self._format_response(claim_nodes, "")
@@ -74,8 +74,8 @@ class HierarchicalQueryEngine():
             combined_response = self._format_response(claim_nodes, "Claims Information:")
 
         #Prepare the prompt for the LLM using the combined response and query_str
-
-        input_prompt = PromptTemplate(prompt_template)
+        input_prompt = PromptTemplate((prompt_template))
+        
         if print_prompt:
             print(input_prompt.format(information=combined_response))
 
@@ -90,7 +90,7 @@ class HierarchicalQueryEngine():
             response += f"{i}. {node.node.get_content()}\n\n"
         return response
 
-def run_RAG_pipeline(llm, claim_text, description_text=None, print_prompt=False):
+def run_RAG_pipeline(llm, prompt_template, claim_text, description_text=None, print_prompt=False):
 
     Settings.llm = llm
     Settings.embed_model = "local:BAAI/bge-small-en-v1.5"
@@ -110,13 +110,6 @@ def run_RAG_pipeline(llm, claim_text, description_text=None, print_prompt=False)
     )
     
     claims_VectorIndex = VectorStoreIndex.from_documents([document_claim], llm=llm)
-
-    # Create initial prompt
-    prompt_template = (
-        "You are an expert patent examiner. Summarize the following claim: \n"
-        "{information}\n"
-    )
-    
 
     if description_text:
         document_description = Document(
