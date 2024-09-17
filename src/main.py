@@ -11,8 +11,6 @@ import sys
 
 warnings.simplefilter(action='ignore', category=FutureWarning)
 
-
-
 def load_config(file_path):
     try:
         with open(file_path, 'r') as config_file:
@@ -39,32 +37,34 @@ def main(args):
 
     # Prepare arguments for get_data_from_patent
     dict_args = {
-        'application_number': args['application_number'],
+        'patent_number': args['patent_number'],
         'claim_number': args['claim_number'],
-        'patent_description': args['patent_description'],
+        'field_of_invention': args['field_of_invention'],
+        'background_of_the_invetion': args['background_of_the_invetion'],
+        'summary_of_the_invetion': args['summary_of_the_invetion'],
+        'brief_description_of_the_drawings': args['brief_description_of_the_drawings'],
+        'detailed_description_of_the_embodiments': args['detailed_description_of_the_embodiments'],
         'patent_images': args['patent_images']
     }
-    
+
     print('Obtaining Claim data')
     data_patent = utilsEPO.get_data_from_patent(**dict_args)
     
     print('Detecting numbers from selected image')
     if dict_args['patent_images']:
         numbers_claim = utils.get_numbers_from_Image(data_patent['images'])
-
-    print(args['print_prompt'])
-    print(args['output_filename'])
     
     print('Running RAG Pipeline')
     output_result = run_RAG_pipeline(llm=llm,
+                                     data_patent=data_patent,
                                      prompt_template=args['prompt_template'],
-                                     claim_text=data_patent['claim_text'], 
-                                     description_text=data_patent['description_text'],
-                                     print_prompt=args['print_prompt'])
+                                     print_prompt=args['print_prompt']
+                                     )
     
     _ = generate_image_from_code(output_result, 
                                  prompt_template=args['prompt_template_image'],
                                  output_filename = args['output_filename'],
+                                 max_tokens_code = args['max_tokens_code'],
                                  print_prompt=args['print_prompt'])                        
     
 if __name__ == "__main__":

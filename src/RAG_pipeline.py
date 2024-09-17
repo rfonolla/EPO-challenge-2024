@@ -46,32 +46,33 @@ def extract_keywords_from_template(template):
 # A prompt is build based on the previous information.
 
 class HierarchicalQueryEngine():
-    def __init__(self, claim_index: VectorStoreIndex, description_index: Optional[VectorStoreIndex] = None):
+    def __init__(self, claim_index: VectorStoreIndex, **kwargs):
         self.claim_index = claim_index
-        self.description_index = description_index
+        self.patent_information_indices = kwargs
 
-    def query(self, prompt_template: str, claim_k: int = 2, description_k: int = 2, print_prompt=False) -> str:
+    def query(self, prompt_template: str, claim_k: int = 2, additional_k: int = 2, print_prompt=False) -> str:
         
         # Extract relevant key words from the initial claim prompt
         keywords = " ".join(extract_keywords_from_template(prompt_template))
 
         claim_nodes = self.claim_index.as_retriever(similarity_top_k=claim_k).retrieve(keywords)
+
+        combined_response = "Claims Information:\n"
+        combined_response += self._format_response(claim_nodes, "")
         
-        if self.description_index:
-            # Query the claim node to the parent node.
-            description_nodes = self.description_index.as_retriever(similarity_top_k=description_k).retrieve(self._format_response(claim_nodes, ""))
-        
-            # Add extra instructions to the prompts
-            prompt_template = prompt_template.replace("{information}", "You can use the information of the patent description to improve your answer:\n {information}")
-            # Combine results from both indices
-            combined_response = "Claims Information:\n"
-            combined_response += self._format_response(claim_nodes, "")
-            combined_response += "\nPatent Description:\n"
-            combined_response += self._format_response(description_nodes, "")
-        else:
-            # Return results from claims if available
-            print('Using only claim information...')
-            combined_response = self._format_response(claim_nodes, "Claims Information:")
+        # Add extra instructions to the prompts if additional indices were used
+        if self.patent_information_indices:
+            prompt_template = prompt_template.replace("{information}", "You can use the additional information to improve your answer:\n Additional information \n {information}")
+
+        print(self.patent_information_indices.items())
+        # Query additional indices if they exist
+        for index_name, index in self.patent_information_indices.items():
+            if 'claim_text_index' not in index_name:
+                additional_nodes = index.as_retriever(similarity_top_k=additional_k).retrieve(self._format_response(claim_nodes, ""))
+                combined_response += f"\n{index_name.capitalize().split('_text')[0]} Information:\n"
+                combined_response += self._format_response(additional_nodes, "")
+
+
 
         #Prepare the prompt for the LLM using the combined response and query_str
         input_prompt = PromptTemplate((prompt_template))
@@ -90,54 +91,53 @@ class HierarchicalQueryEngine():
             response += f"{i}. {node.node.get_content()}\n\n"
         return response
 
-def run_RAG_pipeline(llm, prompt_template, claim_text, description_text=None, print_prompt=False):
-
-    Settings.llm = llm
-    Settings.embed_model = "local:BAAI/bge-small-en-v1.5"
-
-    document_claim = Document(
-        text=claim_text,
+def create_document_from_text(text):
+    return Document(
+        text=text,
         metadata={
-            "category": "claim", 
+            "category": "patent_text",
         },
-        excluded_embed_metadata_keys=['category'], 
-        excluded_llm_metadata_keys=['category'], 
-        mimetype='text/plain', 
+        excluded_embed_metadata_keys=["category"], 
+        excluded_llm_metadata_keys=["category"], 
+        mimetype="text/plain", 
         start_char_idx=None, 
         end_char_idx=None, 
         text_template='{metadata_str}\n\n{content}', 
         metadata_template='{key}: {value}', metadata_seperator='\n'
     )
-    
+
+def run_RAG_pipeline(llm, prompt_template, data_patent, print_prompt=False):
+
+    Settings.llm = llm
+    Settings.embed_model = "local:BAAI/bge-small-en-v1.5"
+
+    document_claim = create_document_from_text(data_patent['claim_text'])
     claims_VectorIndex = VectorStoreIndex.from_documents([document_claim], llm=llm)
 
-    if description_text:
-        document_description = Document(
-            text=description_text,
-            metadata={
-                "category": "description",
-            },
-            excluded_embed_metadata_keys=["category"], 
-            excluded_llm_metadata_keys=["category"], 
-            mimetype="text/plain", 
-            start_char_idx=None, 
-            end_char_idx=None, 
-            text_template='{metadata_str}\n\n{content}', 
-            metadata_template='{key}: {value}', metadata_seperator='\n'
-        )
-        
-        description_VectorIndex = VectorStoreIndex.from_documents([document_description], llm=llm)
+    # Create indices for each section if the text is provided
+    additional_patent_info = ['field_of_invention_text',
+                   'background_of_the_invetion_text',
+                   'summary_of_the_invention_text',
+                   'brief_description_of_the_drawings_text',
+                   'detailed_description_of_the_embodiments_text']
 
-        # Create the hierarchical query engine with loaded indices
-        query_engine = HierarchicalQueryEngine(claims_VectorIndex, 
-                                                description_VectorIndex)
-    else:
-        query_engine = HierarchicalQueryEngine(claims_VectorIndex)
-    
+    additional_indices = {}
+
+    for key in additional_patent_info:
+        if data_patent[key]:
+            additional_text = data_patent[key]
+            print('Added:', key)
+            document = create_document_from_text(additional_text)
+            index = VectorStoreIndex.from_documents([document], llm=llm)
+            additional_indices[f'{key}_index'] = index
+
+    # Create the hierarchical query engine with loaded indices
+    query_engine = HierarchicalQueryEngine(claims_VectorIndex, **additional_indices)
+
     # Example combined query
     combined_response = query_engine.query(prompt_template, 
                                            claim_k=1, # number of entries for the claim
-                                           description_k=4, # number of entries for the description relevant if we used description text
+                                           additional_k=4, # number of entries for the description relevant if we used description text
                                            print_prompt=print_prompt
                                           )
     # print the final summary generated by the LLM

@@ -29,7 +29,6 @@ def get_n_claim(input_text, n_claim):
         num_format = r'\d{' + str(n_claim) + '}'
     
     # Regular expression to match each claim in the text with the adjusted number format
-    #claim_pattern = rf'<claim id="[^"]+" num="{num_format}"><claim-text>'
     claim_pattern = rf'(<claim id="[^"]+" num="{num_format}"><claim-text>.*?)(?=<claim id|$)'
 
     # Regular expression to match each claim in the text
