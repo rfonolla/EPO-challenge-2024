@@ -64,7 +64,6 @@ class HierarchicalQueryEngine():
         if self.patent_information_indices:
             prompt_template = prompt_template.replace("{information}", "You can use the additional information to improve your answer:\n Additional information \n {information}")
 
-        print(self.patent_information_indices.items())
         # Query additional indices if they exist
         for index_name, index in self.patent_information_indices.items():
             if 'claim_text_index' not in index_name:

@@ -60,6 +60,8 @@ def main(args):
                                      prompt_template=args['prompt_template'],
                                      print_prompt=args['print_prompt']
                                      )
+
+    print('Generating Image...')
     
     _ = generate_image_from_code(output_result, 
                                  prompt_template=args['prompt_template_image'],
