@@ -45,6 +45,9 @@ def generate_image_from_code(input_text, prompt_template, output_filename, max_t
     filename = f"output_{timestamp}.svg"
     output_filename = output_filename.replace('.svg','_' + timestamp+'.svg')
 
+    # Mkdir for output images
+    os.makedirs('./images', exist_ok=True)
+
     if print_prompt:
         print(input_prompt.format(output_filename=output_filename,information=input_text))
     
@@ -57,7 +60,7 @@ def generate_image_from_code(input_text, prompt_template, output_filename, max_t
     try:
         # exec(result)
         execute_dynamic_code(result)
-        print("Code executed successfully")
+        print("Code executed successfully. Image written in 'images'folder ")
     except Exception as e:            
         print(f"Error executing code: {e}")
 
