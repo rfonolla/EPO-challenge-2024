@@ -4,6 +4,7 @@ import utils
 import utilsEPO
 import warnings
 from image_generation_pipeline import *
+import image_retrieval_pipeline
 from login_claude import *
 import argparse
 import json
@@ -44,30 +45,28 @@ def main(args):
         'summary_of_the_invetion': args['summary_of_the_invetion'],
         'brief_description_of_the_drawings': args['brief_description_of_the_drawings'],
         'detailed_description_of_the_embodiments': args['detailed_description_of_the_embodiments'],
-        'patent_images': args['patent_images']
+        'retrieve_patent_images': args['retrieve_patent_images']
     }
 
     print('Obtaining Claim data')
     data_patent = utilsEPO.get_data_from_patent(**dict_args)
     
-    print('Detecting numbers from selected image')
-    if dict_args['patent_images']:
-        numbers_claim = utils.get_numbers_from_Image(data_patent['images'])
-    
-    print('Running RAG Pipeline')
+    # print('Running RAG Pipeline')
     output_result = run_RAG_pipeline(llm=llm,
                                      data_patent=data_patent,
                                      prompt_template=args['prompt_template'],
                                      print_prompt=args['print_prompt']
                                      )
+    if args['retrieve_patent_images']:
+        dict_numbers = image_retrieval_pipeline.retrieve_numbers_from_image(data_patent['encoded_image'],model_llm)
+        print('Detected numbers for each figure: ', dict_numbers)
 
-    print('Generating Image...')
-    
-    _ = generate_image_from_code(output_result, 
-                                 prompt_template=args['prompt_template_image'],
-                                 output_filename = args['output_filename'],
-                                 max_tokens_code = args['max_tokens_code'],
-                                 print_prompt=args['print_prompt'])                        
+    # # print('Generating Image...')
+    # _ = generate_image_from_code(output_result, 
+    #                              prompt_template=args['prompt_template_image'],
+    #                              output_filename = args['output_filename'],
+    #                              max_tokens_code = args['max_tokens_code'],
+    #                              print_prompt=args['print_prompt'])                        
     
 if __name__ == "__main__":
 

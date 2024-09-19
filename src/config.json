@@ -10,10 +10,10 @@
     "background_of_the_invetion": false,
     "summary_of_the_invetion": false,
     "brief_description_of_the_drawings": false,
-    "detailed_description_of_the_embodiments": true,
-    "patent_images": true,
-    "output_filename": "generated_image.svg",
-    "prompt_template": "You are an expert patent examiner. Summarize the following claim: \n{information}\n",
+    "detailed_description_of_the_embodiments": false,
+    "retrieve_patent_images": true,
+    "output_filename": "./images/generated_image.svg",
+     "prompt_template": "You are an expert patent examiner. Summarize the following claim and extract the reference numbers: \n{information}\n. Return the information as a JSON using the following template: \n  \"summary\": \"summary description\",\n  \"reference\": \n        \"number_reference1\": \"reference1\",\n        \"number_reference2\": \"reference2\"\n\n",
     "prompt_template_image": "Draw an image describing the following invention. Use colors, sizes, spatial orientation, position, and a legend to emphasize the essence of the invention. Generate the code with svgwriter in Python. Name the image {output_filename}. The code should be functional, efficient, and adhere to best practices in Python programming.\n Invention: {information}",
-    "print_prompt": true
+    "print_prompt": false
 }

@@ -6,6 +6,7 @@ import io
 import cv2
 import easyocr
 import numpy as np
+import json
 
 def count_claims(input_text):
     # Regular expression to match each claim in the text
@@ -57,21 +58,17 @@ def check_gpu_is_free():
     else:
         return False
 
-def get_numbers_from_Image(image):
-    
-    # Initialize the EasyOCR reader
-    reader = easyocr.Reader(['en'])  # Specify the language(s) for OCR
+def get_json_from_text(text):
 
-    # Use EasyOCR to extract text from the image
-    result = reader.readtext(image, detail=0)  # detail=0 to get only the text
+    # Extract the JSON string by finding the first { and last }
+    start = text.find('{')
+    end = text.rfind('}') + 1  # to include the last }
     
-    # Join the detected text into a single string
-    text = " ".join(result)
-    
-    # Use regular expressions to extract alphanumeric sequences
-    numbers_claim = re.findall(r'\b\w+\b', text)
+    json_string = text[start:end]
+    # Convert the JSON string into a Python dictionary
+    data_dict = json.loads(json_string)
 
-    return numbers_claim
+    return data_dict
 
 
 def get_code_from_text(text):

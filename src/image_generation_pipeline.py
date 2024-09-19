@@ -21,11 +21,14 @@ def execute_dynamic_code(code_str):
         # Print the output
         print("Execution output:")
         print(result.stdout)
-        
+
         # Print any errors
         if result.stderr:
             print("Errors:")
             print(result.stderr)
+        else:
+            print("Code executed successfully. Image written in 'images'folder ")
+
         
         return result.returncode == 0  # Return True if execution was successful
     except Exception as e:
@@ -56,11 +59,8 @@ def generate_image_from_code(input_text, prompt_template, output_filename, max_t
                                                         information=input_text)
                                    )    
     result = utils.get_code_from_text(summary.text)
-    
-    try:
-        # exec(result)
-        execute_dynamic_code(result)
-        print("Code executed successfully. Image written in 'images'folder ")
-    except Exception as e:            
-        print(f"Error executing code: {e}")
+
+    # Execute code
+    execute_dynamic_code(result)
+
 

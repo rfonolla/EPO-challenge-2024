@@ -16,7 +16,6 @@ def get_patent_info_from_description(query):
 
     html_content = query[0]['description']['text']
     soup = BeautifulSoup(html_content, 'html.parser')
-    
     elements = soup.find_all(['heading', 'p'])
     headings_patent = [
         "FIELD OF THE INVENTION",
@@ -32,7 +31,6 @@ def get_patent_info_from_description(query):
     
     for element in elements:
         text = element.text.strip()
-        
         if text.strip().isupper() and text.strip() in headings_patent:
             current_heading = text.strip()
             if current_heading == "DETAILED DESCRIPTION OF THE EMBODIMENTS":
@@ -40,16 +38,15 @@ def get_patent_info_from_description(query):
         else:
             if current_heading:
                 if detailed_description_found:
-                    patent_dict[current_heading] += f"{text} "
+                    patent_dict[current_heading] += f"{text}"
                 elif current_heading != "DETAILED DESCRIPTION OF THE EMBODIMENTS":
-                    patent_dict[current_heading] += f"{text} "
-    
+                    patent_dict[current_heading] += f"{text}"
+                    
     # Remove leading/trailing whitespace from each section
-        for heading in patent_dict:
-            patent_dict[heading] = patent_dict[heading].strip()
+    for heading in patent_dict:
+        patent_dict[heading] = patent_dict[heading].strip()
 
     patent_dict = {k: None if v == "" else v for k, v in patent_dict.items()}
-    
     return patent_dict
 
 def get_data_from_patent(**kwargs):
@@ -61,7 +58,7 @@ def get_data_from_patent(**kwargs):
     summary_of_the_invetion = kwargs.get('summary_of_the_invetion', False)
     brief_description_of_the_drawings = kwargs.get('brief_description_of_the_drawings', False)
     detailed_description_of_the_embodiments = kwargs.get('detailed_description_of_the_embodiments', False)
-    patent_images = kwargs.get('patent_images', False)
+    retrieve_patent_images = kwargs.get('retrieve_patent_images', False)
     
     output_data = {'claim_text': None,
                    'field_of_invention_text':None,
@@ -69,8 +66,8 @@ def get_data_from_patent(**kwargs):
                    'summary_of_the_invention_text':None,
                    'brief_description_of_the_drawings_text':None,
                    'detailed_description_of_the_embodiments_text':None,
-                   'images': None,
-                   'encoded_images': None
+                   'image_array': None,
+                   'encoded_image': None
                   } 
 
     # Start EPO Client
@@ -103,23 +100,30 @@ def get_data_from_patent(**kwargs):
         output_data['detailed_description_of_the_embodiments_text'] = patent_desc_info['DETAILED DESCRIPTION OF THE EMBODIMENTS']
 
     # Images TBD improve the retrieval
-    if patent_images:
-        result = drwa = q.get_drawings(output_type="dataframe")
+    if retrieve_patent_images:
+        result = q.get_drawings(output_type="dataframe")
 
         # Convert IPython Image object to a byte stream
-        image_bytes = io.BytesIO(result["attachment"][0][0]['content'])
-    
-        # Open the image using PIL
-        pil_image = PILImage.open(image_bytes)
-    
-        # Encode the image
-        encoded_image = utils.encode_image_array(pil_image)
-    
-        # Convert the PIL image to a NumPy array
-        image_array = np.array(pil_image)
+        number_images = len(result["attachment"][0])
+        print('There a total of' , number_images, ' images')
 
-        output_data['encoded_image'] = encoded_image
-        output_data['images'] = image_array
+        output_data['image_array'] = [None] * number_images
+        output_data['encoded_image'] = [None] * number_images
+
+        for idx, image in enumerate(result["attachment"][0]):
+            image_bytes = io.BytesIO(result["attachment"][0][idx]['content'])
+        
+            # Open the image using PIL
+            pil_image = PILImage.open(image_bytes)
+        
+            # Encode the image
+            encoded_image = utils.encode_image_array(pil_image)
+        
+            # Convert the PIL image to a NumPy array
+            image_array = np.array(pil_image)
+    
+            output_data['encoded_image'][idx] = encoded_image
+            output_data['image_array'][idx] = image_array
 
     
     return output_data
