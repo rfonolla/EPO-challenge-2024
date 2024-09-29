@@ -2,6 +2,7 @@ import re
 import numpy as np
 import json
 import io
+improt base64
 
 def encode_image_array(pil_image):
     # Save PIL Image to a byte stream
