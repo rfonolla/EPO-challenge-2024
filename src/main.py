@@ -52,7 +52,7 @@ def main(args):
     data_patent = utilsEPO.get_data_from_patent(**dict_args)
     
     # print('Running RAG Pipeline')
-    output_result = run_RAG_pipeline(llm=llm,
+    summary = run_RAG_pipeline(llm=llm,
                                      data_patent=data_patent,
                                      prompt_template=args['prompt_template'],
                                      print_prompt=args['print_prompt']
@@ -61,12 +61,14 @@ def main(args):
         dict_numbers = image_retrieval_pipeline.retrieve_numbers_from_image(data_patent['encoded_image'],model_llm)
         print('Detected numbers for each figure: ', dict_numbers)
 
-    # # print('Generating Image...')
-    # _ = generate_image_from_code(output_result, 
-    #                              prompt_template=args['prompt_template_image'],
-    #                              output_filename = args['output_filename'],
-    #                              max_tokens_code = args['max_tokens_code'],
-    #                              print_prompt=args['print_prompt'])                        
+    # print('Generating Image...')
+    output_filename = generate_image_from_code(summary, 
+                         prompt_template=args['prompt_template_image'],
+                         output_filename = args['output_filename'],
+                         max_tokens_code = args['max_tokens_code'],
+                         print_prompt=args['print_prompt'])
+
+    return summary, output_filename
     
 if __name__ == "__main__":
 
@@ -76,7 +78,4 @@ if __name__ == "__main__":
 
     config = load_config(args.input_json)
     
-    main(config)
-
-        
-    
+    summary, output_filename = main(config)

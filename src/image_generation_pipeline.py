@@ -45,7 +45,6 @@ def generate_image_from_code(input_text, prompt_template, output_filename, max_t
 
     # Get current timestamp
     timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-    filename = f"output_{timestamp}.svg"
     output_filename = output_filename.replace('.svg','_' + timestamp+'.svg')
 
     # Mkdir for output images
@@ -57,10 +56,12 @@ def generate_image_from_code(input_text, prompt_template, output_filename, max_t
     # Query the LLM to generate the summary or answer
     summary = Settings.llm.complete(input_prompt.format(output_filename=output_filename,
                                                         information=input_text)
-                                   )    
+                                   )
     result = utils.get_code_from_text(summary.text)
 
     # Execute code
     execute_dynamic_code(result)
+
+    return output_filename
 
 

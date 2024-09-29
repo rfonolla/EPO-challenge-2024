@@ -4,16 +4,17 @@
     "max_tokens": 1024,
     "max_tokens_code": 2048,
     "patent_number": "EP4014844A1",
-    "publication_number": false,
     "claim_number": 1,
-    "field_of_invention": false,
-    "background_of_the_invetion": false,
-    "summary_of_the_invetion": false,
-    "brief_description_of_the_drawings": false,
-    "detailed_description_of_the_embodiments": false,
-    "retrieve_patent_images": true,
-    "output_filename": "./images/generated_image.svg",
+    "field_of_invention": true,
+    "background_of_the_invetion": true,
+    "summary_of_the_invetion": true,
+    "brief_description_of_the_drawings": true,
+    "detailed_description_of_the_embodiments": true,
+    "retrieve_patent_images": false,
+    "output_filename": "./images/EP4014844A1.svg",
+    
      "prompt_template": "You are an expert patent examiner. Summarize the following claim and extract the reference numbers: \n{information}\n. Return the information as a JSON using the following template: \n  \"summary\": \"summary description\",\n  \"reference\": \n        \"number_reference1\": \"reference1\",\n        \"number_reference2\": \"reference2\"\n\n",
-    "prompt_template_image": "Draw an image describing the following invention. Use colors, sizes, spatial orientation, position, and a legend to emphasize the essence of the invention. Generate the code with svgwriter in Python. Name the image {output_filename}. The code should be functional, efficient, and adhere to best practices in Python programming.\n Invention: {information}",
+    
+    "prompt_template_image": "You are an expert Python developer specializing in SVG image generation. Create a Python script to draw an SVG image for the following claim:\n\n{information}\n\nUse the following requirements and return the complete Python script:\n\nUse the svgwrite library to create the SVG image.\nInclude the title of the invention. \nUse a canvas size of 800x600 pixels\nChoose appropriate shapes for each object in the claim.\n. Use distinct colors for each object or category.\n Use arrows to indicate directions when needed.\nInclude a legend that doesn't overlap with the main image.\nEvery eleement needs to have a legend.\nPosition the legend in the top left corner of the image and make sure it does not fall outside of borders\nUse small icons and text to represent each item in the legend\nAdd appropriate labels or text where necessary to clarify the image.\nEnsure the code is well-commented and easy to understand.\n Do not use mm as position.\n Name the image {output_filename}",
     "print_prompt": false
 }
