@@ -159,7 +159,6 @@ def get_data_from_patent(**kwargs):
         output_data['claim_text'] = epab.clean_text(selected_claim[0])
     else:
         raise ValueError("Could not read Claim information. Is the HTML in a correct format?")
-    print(output_data['claim_text'])    
 
     if field_of_invention:
         output_data['field_of_invention_text'] = patent_desc_info['FIELD OF THE INVENTION']

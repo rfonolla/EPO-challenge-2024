@@ -10,6 +10,8 @@ class PatentAnalysisWidget:
         self.input_widgets = {}
         self.output_image = widgets.Image(format='svg+xml', layout=widgets.Layout(width='600px', height='450px'))
         self.output_text = widgets.HTML()
+        self.claim_info = widgets.HTML()
+        self.relevant_figures = widgets.Image(format='svg+xml', layout=widgets.Layout(width='600px', height='450px'))        
         self.loading_indicator = widgets.Label("Processing...")
         self.create_ui()
 
@@ -54,9 +56,11 @@ class PatentAnalysisWidget:
 
         # Tabs for Inputs and Results
         self.tab = widgets.Tab()
-        self.tab.children = [input_box, self.output_box]
+        self.tab.children = [input_box, self.output_box, self.claim_info, self.relevant_figures]
         self.tab.set_title(0, "Inputs")
         self.tab.set_title(1, "Results")
+        self.tab.set_title(2, "Claim information")
+        self.tab.set_title(3, "Relevant figure")
 
         display(self.tab)
 
@@ -75,7 +79,9 @@ class PatentAnalysisWidget:
         
         try:
             # Call the main function with the temporary config file
-            summary, output_filename = main(load_config(temp_json_path))
+            summary, output_filename, claim_info = main(load_config(temp_json_path))
+
+            self.claim_info.value = f"<p><strong>Claim information:</strong> {claim_info}</p>"
 
             # Load and display the output image from the specified file path
             if output_filename and os.path.exists(output_filename):

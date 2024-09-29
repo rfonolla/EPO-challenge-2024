@@ -68,7 +68,7 @@ def main(args):
                          max_tokens_code = int(args['max_tokens_code']),
                          print_prompt=args['print_prompt'])
 
-    return summary, output_filename
+    return summary, output_filename, data_patent['claim_text']
     
 if __name__ == "__main__":
 
