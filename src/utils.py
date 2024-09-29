@@ -1,6 +1,7 @@
 import re
 import numpy as np
 import json
+import io
 
 def encode_image_array(pil_image):
     # Save PIL Image to a byte stream
