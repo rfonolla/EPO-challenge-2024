@@ -1,43 +1,6 @@
 import re
-from pynvml import *
-import base64
-from PIL import Image as PILImage
-import io
-import cv2
-import easyocr
 import numpy as np
 import json
-
-def count_claims(input_text):
-    # Regular expression to match each claim in the text
-    claim_pattern = r'<claim id="[^"]+" num="\d+"><claim-text>'
-    
-    # Find all matches using the regex
-    claims = re.findall(claim_pattern, input_text)
-    
-    # Return the number of claims found
-    return len(claims)
-
-def get_n_claim(input_text, n_claim):
-
-    if len(str(n_claim)) == 1:
-        num_format = r'000' + str(n_claim) 
-    elif len(str(n_claim)) == 2:
-        num_format = r'00' + str(n_claim) 
-    elif len(str(n_claim)) == 3:
-        num_format = r'0' + str(n_claim) 
-    else:
-        num_format = r'\d{' + str(n_claim) + '}'
-    
-    # Regular expression to match each claim in the text with the adjusted number format
-    claim_pattern = rf'(<claim id="[^"]+" num="{num_format}"><claim-text>.*?)(?=<claim id|$)'
-
-    # Regular expression to match each claim in the text
-    # Find all matches using the regex
-    claims = re.findall(claim_pattern, input_text,  re.DOTALL)
-    
-    # Return the number of claims found
-    return claims
 
 def encode_image_array(pil_image):
     # Save PIL Image to a byte stream
@@ -69,7 +32,6 @@ def get_json_from_text(text):
     data_dict = json.loads(json_string)
 
     return data_dict
-
 
 def get_code_from_text(text):
     # Split the text by lines and filter out non-code content

@@ -1,5 +1,6 @@
 import os
 import io
+import re
 
 import numpy as np
 from bs4 import BeautifulSoup
@@ -11,10 +12,70 @@ from epo.tipdata.epab import EPABClient
 # Own libs
 import utils
 
+def count_claims(input_text):
+    # Regular expression to match each claim in the text
+    claim_pattern = r'<claim id="[^"]+" num="\d+"><claim-text>'
+    
+    # Find all matches using the regex
+    claims = re.findall(claim_pattern, input_text)
+    
+    # Return the number of claims found
+    return len(claims)
 
+def get_n_claim_alt(input_text, n_claim):
+    
+    soup = BeautifulSoup(input_text, 'html.parser')
+    elements = soup.find_all('claim-text')
+    claim_info = []
+    for idx,element in enumerate(elements):
+        text = element.text.strip()
+        if text.isupper(): # HEADER
+            continue
+        else:  
+            claim_info.append(text)
+
+    return claim_info[n_claim]
+
+
+def get_n_claim(input_text, n_claim):
+
+    if len(str(n_claim)) == 1:
+        num_format = r'000' + str(n_claim) 
+    elif len(str(n_claim)) == 2:
+        num_format = r'00' + str(n_claim) 
+    elif len(str(n_claim)) == 3:
+        num_format = r'0' + str(n_claim) 
+    else:
+        num_format = r'\d{' + str(n_claim) + '}'
+    
+    # Regular expression to match each claim in the text with the adjusted number format
+    claim_pattern = rf'(<claim id="[^"]+" num="{num_format}"><claim-text>.*?)(?=<claim id|$)'
+
+    # Regular expression to match each claim in the text
+    # Find all matches using the regex
+    claims = re.findall(claim_pattern, input_text,  re.DOTALL)
+    
+    # Return the number of claims found
+    return claims
+    
 def get_patent_info_from_description(query):
-
+    
+    if not query or not isinstance(query, list) or len(query) == 0:
+        raise ValueError("Query is None, empty, or not a list: Manually check contents of the patent number")
+    
+    if not isinstance(query[0], dict):
+        raise ValueError("First element of query is not a dictionary: Manually check contents of the patent number")
+    
+    description = query[0].get('description')
+    if description is None:
+        raise ValueError("No 'description' field in the query: Manually check contents of the patent number")
+    
+    if not isinstance(description, dict) or 'text' not in description:
+        raise ValueError("'description' field is not a dictionary or does not contain 'text': Manually check contents of the patent number")
+    
+    
     html_content = query[0]['description']['text']
+
     soup = BeautifulSoup(html_content, 'html.parser')
     elements = soup.find_all(['heading', 'p'])
     headings_patent = [
@@ -22,24 +83,28 @@ def get_patent_info_from_description(query):
         "BACKGROUND OF THE INVENTION",
         "SUMMARY OF THE INVENTION",
         "BRIEF DESCRIPTION OF THE DRAWINGS",
-        "DETAILED DESCRIPTION OF THE EMBODIMENTS"
+        "DETAILED DESCRIPTION OF THE EMBODIMENTS",
+        # Alternative headings
+        "TECHNICAL FIELD AND BACKGROUND",
+        "BRIEF DESCRIPTION OF DRAWINGS",
+        "SUMMARY",
+        "DESCRIPTION OF EMBODIMENTS",
     ]
     
     patent_dict = {heading: "" for heading in headings_patent}
     current_heading = None
     detailed_description_found = False
-    
     for element in elements:
         text = element.text.strip()
         if text.strip().isupper() and text.strip() in headings_patent:
             current_heading = text.strip()
-            if current_heading == "DETAILED DESCRIPTION OF THE EMBODIMENTS":
+            if current_heading == "DETAILED DESCRIPTION OF THE EMBODIMENTS" or current_heading == "DESCRIPTION OF EMBODIMENTS":
                 detailed_description_found = True
         else:
             if current_heading:
                 if detailed_description_found:
                     patent_dict[current_heading] += f"{text}"
-                elif current_heading != "DETAILED DESCRIPTION OF THE EMBODIMENTS":
+                elif current_heading != "DETAILED DESCRIPTION OF THE EMBODIMENTS" or curren_heading != "DESCRIPTION OF EMBODIMENTS":
                     patent_dict[current_heading] += f"{text}"
                     
     # Remove leading/trailing whitespace from each section
@@ -83,11 +148,19 @@ def get_data_from_patent(**kwargs):
 
     ## CLAIM INFORMATION
     claim_text = query_claims_description[0]['claims'][0]['text']
-    number_of_claims = utils.count_claims(claim_text)
-    selected_claim = utils.get_n_claim(claim_text, n_claim=claim_number)
 
-    # Assign data:
-    output_data['claim_text'] = epab.clean_text(selected_claim[0])
+    number_of_claims = count_claims(claim_text)
+
+    if number_of_claims == 0: # try reading as if all claims are inside claim 1.
+        selected_claim = get_n_claim_alt(claim_text, n_claim=claim_number)
+        output_data['claim_text'] = selected_claim
+    elif number_of_claims != 0: # standard structure
+        selected_claim = get_n_claim(claim_text, n_claim=claim_number)
+        output_data['claim_text'] = epab.clean_text(selected_claim[0])
+    else:
+        raise ValueError("Could not read Claim information. Is the HTML in a correct format?")
+    print(output_data['claim_text'])    
+
     if field_of_invention:
         output_data['field_of_invention_text'] = patent_desc_info['FIELD OF THE INVENTION']
     if background_of_the_invetion:

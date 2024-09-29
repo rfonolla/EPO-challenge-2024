@@ -72,8 +72,6 @@ class HierarchicalQueryEngine():
                 combined_response += f"\n{index_name.capitalize().split('_text')[0]} Information:\n"
                 combined_response += self._format_response(additional_nodes, "")
 
-
-
         #Prepare the prompt for the LLM using the combined response and query_str
         input_prompt = PromptTemplate((prompt_template))
         

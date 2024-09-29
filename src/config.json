@@ -3,7 +3,7 @@
     "temperature": 0.0,
     "max_tokens": 1024,
     "max_tokens_code": 2048,
-    "patent_number": "EP4014844A1",
+    "patent_number": "EP4153021A1",
     "claim_number": 1,
     "field_of_invention": true,
     "background_of_the_invetion": true,
@@ -11,7 +11,7 @@
     "brief_description_of_the_drawings": true,
     "detailed_description_of_the_embodiments": true,
     "retrieve_patent_images": false,
-    "output_filename": "./images/EP4014844A1.svg",
+    "output_filename": "./images/EP4153021A1.svg",
     
      "prompt_template": "You are an expert patent examiner. Summarize the following claim and extract the reference numbers:\n{information}\nReturn the information as a JSON using the following template:\n\"summary\":\"summary description\",\n\"reference\":\n\"number_reference1\":\"reference1\",\n        \"number_reference2\": \"reference2\"",
     
