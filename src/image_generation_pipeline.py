@@ -45,7 +45,8 @@ def generate_image_from_code(input_text, prompt_template, output_filename, max_t
 
     # Get current timestamp
     timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-    output_filename = output_filename.replace('.svg','_' + timestamp+'.svg')
+    file_format = output_filename[output_filename.rfind('.')+1:]
+    output_filename = output_filename.replace('.'+file_format,'_' + timestamp+'.'+file_format)
 
     # Mkdir for output images
     os.makedirs('./images', exist_ok=True)

@@ -29,9 +29,9 @@ def main(args):
     model_llm = args['model_llm']
     
     if 'claude' in model_llm.lower():
-        llm = Anthropic(model=model_llm, temperature=args['temperature'], max_tokens=args['max_tokens']) # ["claude-3-5-sonnet-20240620","claude-3-opus-20240229", "claude-3-sonnet-20240229", "claude-3-haiku-20240307","gpt-3.5-turbo"]
+        llm = Anthropic(model=model_llm, temperature=int(args['temperature']), max_tokens=int(args['max_tokens'])) # ["claude-3-5-sonnet-20240620","claude-3-opus-20240229", "claude-3-sonnet-20240229", "claude-3-haiku-20240307","gpt-3.5-turbo"]
     elif 'gpt' in model_llm.lower():
-        llm = OpenAI(model=model_llm, temperature=args['temperature'], max_tokens=args['max_tokens'])
+        llm = OpenAI(model=model_llm, temperature=int(args['temperature']), max_tokens=int(args['max_tokens']))
     else:
         raise ValueError(f"Unsupported model: {model_llm}")
 
@@ -52,7 +52,7 @@ def main(args):
     data_patent = utilsEPO.get_data_from_patent(**dict_args)
     
     # print('Running RAG Pipeline')
-    summary = run_RAG_pipeline(llm=llm,
+    summary, references = run_RAG_pipeline(llm=llm,
                                      data_patent=data_patent,
                                      prompt_template=args['prompt_template'],
                                      print_prompt=args['print_prompt']
@@ -65,7 +65,7 @@ def main(args):
     output_filename = generate_image_from_code(summary, 
                          prompt_template=args['prompt_template_image'],
                          output_filename = args['output_filename'],
-                         max_tokens_code = args['max_tokens_code'],
+                         max_tokens_code = int(args['max_tokens_code']),
                          print_prompt=args['print_prompt'])
 
     return summary, output_filename
