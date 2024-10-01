@@ -14,29 +14,26 @@ def execute_dynamic_code(code_str):
         # Write the code to the temporary file
         temp_file.write(code_str)
 
-    try:
-        # Execute the temporary Python file
-        result = subprocess.run(['python', temp_filename], capture_output=True, text=True)
-        
-        # Print the output
-        print("Execution output:")
-        print(result.stdout)
+    # Execute the temporary Python file
+    result = subprocess.run(['python', temp_filename], capture_output=True, text=True)
+    
+    # Print the output
+    print("Execution output:")
+    print(result.stdout)
 
-        # Print any errors
-        if result.stderr:
-            print("Errors:")
-            print(result.stderr)
-        else:
-            print("Code executed successfully. Image written in 'images'folder ")
-
+    # Print any errors
+    if result.stderr:
+        print("Errors:")
+        print(result.stderr)
+        return result.stderr
+    else:
+        print("Code executed successfully. Image written in 'images'folder ")
         
-        return result.returncode == 0  # Return True if execution was successful
-    except Exception as e:
-        print(f"An error occurred: {e}")
-        return False
-    finally:
-        # Delete the temporary file
-        os.unlink(temp_filename)
+    # Delete the temporary file
+    os.unlink(temp_filename)  
+    
+    return 0 # Return True if execution was successful
+
 
 def generate_image_from_code(input_text, prompt_template, output_filename, max_tokens_code, print_prompt):
 
@@ -53,16 +50,41 @@ def generate_image_from_code(input_text, prompt_template, output_filename, max_t
 
     if print_prompt:
         print(input_prompt.format(output_filename=output_filename,information=input_text))
-    
+
+    # Execute once
     # Query the LLM to generate the summary or answer
     summary = Settings.llm.complete(input_prompt.format(output_filename=output_filename,
                                                         information=input_text)
                                    )
     result = utils.get_code_from_text(summary.text)
-
     # Execute code
-    execute_dynamic_code(result)
-
+    execution_result = execute_dynamic_code(result)
+    
+    attempts =0    
+    while execution_result != 0 and attempts < 10:
+        print('Found an error in the code: attempting to fix it. Attempt:', attempts)
+        input_text_correction = "You are an expert Python developer specializing in SVG image generation. You have provided the following script {code}. \
+        Your code is incorrect and shows the following error : {error}\
+        Please correct the code and keep in mind the following points: \
+        \nUse the svgwrite library to create the SVG image.\nInclude the title of the invention.\
+        \nUse a canvas size of 512x512 pixels\nChoose appropriate shapes for each object in the claim.\nUse distinct colors for each object or category.\
+        \n Use arrows to indicate directions when needed.\nInclude a legend that doesn't overlap with the main image.\nEvery element needs to have a legend.\
+        \nPosition the legend in the top left corner of the image and make sure it does not fall outside of borders\
+        \nUse small icons and text to represent each item in the legend\
+        \nAdd appropriate labels or text where necessary to clarify the image.\
+        \nEnsure the code is well-commented and easy to understand.\
+        \n Do not use mm as position.\n Name the image {output_filename}"
+        
+        # Query the LLM to generate the summary or answer
+        summary = Settings.llm.complete(input_text_correction.format(output_filename=output_filename,
+                                                            code=result,
+                                                            error=execution_result) 
+                                       )
+        result = utils.get_code_from_text(summary.text)
+        # Execute code
+        execution_result = execute_dynamic_code(result)
+        attempts +=1
+        
     return output_filename
 
 
