@@ -57,9 +57,16 @@ def main(args):
                                      prompt_template=args['prompt_template'],
                                      print_prompt=args['print_prompt']
                                      )
-    if args['retrieve_patent_images']:
+    top_images = None
+    
+    if args['retrieve_patent_images'] and data_patent['pil_image'] and data_patent['encoded_image']:
+        # Retrieve numbers for e
         dict_numbers = image_retrieval_pipeline.retrieve_numbers_from_image(data_patent['encoded_image'],model_llm)
         print('Detected numbers for each figure: ', dict_numbers)
+        print(summary)
+        # Retrieve most similar image
+        top_indices = image_retrieval_pipeline.retrieve_similar_images(summary, data_patent['pil_image'], top_k=int(args['retrieve_top_k_images']))
+        top_images = [data_patent['encoded_image'][idx] for idx in top_indices]
 
     # print('Generating Image...')
     output_filename = generate_image_from_code(summary, 
@@ -68,7 +75,7 @@ def main(args):
                          max_tokens_code = int(args['max_tokens_code']),
                          print_prompt=args['print_prompt'])
 
-    return summary, output_filename, data_patent['claim_text']
+    return summary, output_filename, data_patent['claim_text'], top_images
     
 if __name__ == "__main__":
 
@@ -78,4 +85,4 @@ if __name__ == "__main__":
 
     config = load_config(args.input_json)
     
-    summary, output_filename = main(config)
+    main(config)

@@ -1,7 +1,10 @@
 import anthropic
 import utils
 import collections
-
+from sentence_transformers import SentenceTransformer, util
+from PIL import Image
+import torch
+import numpy as np
 
 def run_claude_on_image(client,image_encoded):
 
@@ -45,3 +48,30 @@ def retrieve_numbers_from_image(images, model_llm):
         return 0
 
     return  dict_numbers
+
+
+def retrieve_similar_images(query_text, image_data, top_k=1):
+
+    # Load a pre-trained model that can handle both text and images
+    model = SentenceTransformer('clip-ViT-B-32')
+    # Get the image embedding for all images
+    image_embedding = model.encode(image_data, convert_to_tensor=True)
+
+    # Encode the query text
+    query_embedding = model.encode([query_text], convert_to_tensor=True)
+
+    # Compute cosine similarities
+    cos_scores = util.cos_sim(query_embedding, image_embedding)[0]
+    
+    # Get top k results
+    top_results = torch.topk(cos_scores, k=top_k)
+    
+    # Print results
+    for idx, score in zip(top_results.indices.tolist(), top_results.values.tolist()):
+        print(f"Image index: {idx}, Similarity Score: {score:.4f}")
+
+    return top_results.indices.tolist()
+
+
+    
+

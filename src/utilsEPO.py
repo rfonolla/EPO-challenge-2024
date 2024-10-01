@@ -131,7 +131,7 @@ def get_data_from_patent(**kwargs):
                    'summary_of_the_invention_text':None,
                    'brief_description_of_the_drawings_text':None,
                    'detailed_description_of_the_embodiments_text':None,
-                   'image_array': None,
+                   'pil_image': None,
                    'encoded_image': None
                   } 
 
@@ -177,25 +177,28 @@ def get_data_from_patent(**kwargs):
 
         # Convert IPython Image object to a byte stream
         number_images = len(result["attachment"][0])
-        print('There a total of' , number_images, ' images')
-
-        output_data['image_array'] = [None] * number_images
-        output_data['encoded_image'] = [None] * number_images
-
-        for idx, image in enumerate(result["attachment"][0]):
-            image_bytes = io.BytesIO(result["attachment"][0][idx]['content'])
-        
-            # Open the image using PIL
-            pil_image = PILImage.open(image_bytes)
-        
-            # Encode the image
-            encoded_image = utils.encode_image_array(pil_image)
-        
-            # Convert the PIL image to a NumPy array
-            image_array = np.array(pil_image)
+        if number_images < 1:
+            print('No attachments were found')
+        else:        
+            print('There a total of' , number_images, ' images')
     
-            output_data['encoded_image'][idx] = encoded_image
-            output_data['image_array'][idx] = image_array
+            output_data['pil_image'] = [None] * number_images
+            output_data['encoded_image'] = [None] * number_images
+    
+            for idx, image in enumerate(result["attachment"][0]):
+                image_bytes = io.BytesIO(result["attachment"][0][idx]['content'])
+            
+                # Open the image using PIL
+                pil_image = PILImage.open(image_bytes)
+            
+                # Encode the image
+                encoded_image = utils.encode_image_array(pil_image)
+            
+                # # Convert the PIL image to a NumPy array
+                # image_array = np.array(pil_image)
+        
+                output_data['encoded_image'][idx] = encoded_image
+                output_data['pil_image'][idx] = pil_image
 
     
     return output_data

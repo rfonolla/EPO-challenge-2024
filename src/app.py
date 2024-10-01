@@ -3,6 +3,7 @@ from IPython.display import display, HTML
 import json
 import os
 from main import main, load_config
+import base64
 
 class PatentAnalysisWidget:
     def __init__(self, json_schema):
@@ -11,7 +12,16 @@ class PatentAnalysisWidget:
         self.output_image = widgets.Image(format='svg+xml', layout=widgets.Layout(width='600px', height='450px'))
         self.output_text = widgets.HTML()
         self.claim_info = widgets.HTML()
-        self.relevant_figures = widgets.Image(format='svg+xml', layout=widgets.Layout(width='600px', height='450px'))        
+        self.loading_indicator = widgets.Label("Processing...")
+        #Create dropdown and image widgets for relevant figures
+        self.relevant_figures_dropdown = widgets.Dropdown(
+            options=[],
+            description='Select Figure:',
+            layout=widgets.Layout(width='300px')
+        )
+        self.relevant_figures_image = widgets.Image(format='png', layout=widgets.Layout(width='600px', height='450px'))
+        self.relevant_figures_dropdown.observe(self.on_figure_change, names='value')
+        
         self.loading_indicator = widgets.Label("Processing...")
         self.create_ui()
 
@@ -56,7 +66,8 @@ class PatentAnalysisWidget:
 
         # Tabs for Inputs and Results
         self.tab = widgets.Tab()
-        self.tab.children = [input_box, self.output_box, self.claim_info, self.relevant_figures]
+        self.tab.children = [input_box, self.output_box, self.claim_info, 
+                             widgets.VBox([self.relevant_figures_dropdown, self.relevant_figures_image])]        
         self.tab.set_title(0, "Inputs")
         self.tab.set_title(1, "Results")
         self.tab.set_title(2, "Claim information")
@@ -79,7 +90,7 @@ class PatentAnalysisWidget:
         
         try:
             # Call the main function with the temporary config file
-            summary, output_filename, claim_info = main(load_config(temp_json_path))
+            summary, output_filename, claim_info,  relevant_image = main(load_config(temp_json_path))
 
             self.claim_info.value = f"<p><strong>Claim information:</strong> {claim_info}</p>"
 
@@ -87,6 +98,16 @@ class PatentAnalysisWidget:
             if output_filename and os.path.exists(output_filename):
                 with open(output_filename, 'rb') as f:
                     self.output_image.value = f.read()  # Read the image file in binary mode
+            
+            if relevant_image:
+                self.relevant_image = relevant_image  # Store all relevant images
+                self.relevant_figures_dropdown.options = [f'Relevant image {i+1}' for i in range(len(relevant_image))]
+                self.relevant_figures_dropdown.value = self.relevant_figures_dropdown.options[0]
+                self.update_relevant_figure(0)  # Pass the index instead of the image data
+            else:
+                self.relevant_image = []
+                self.relevant_figures_dropdown.options = []
+                self.relevant_figures_image.value = b''
         
             # Display the summary text
             self.output_text.value = f"<p><strong>Summary:</strong> {summary}</p>"
@@ -107,6 +128,15 @@ class PatentAnalysisWidget:
         for key, value in self.schema.items():
             if key in self.input_widgets:
                 self.input_widgets[key].value = value
+
+    def update_relevant_figure(self, index):
+        if 0 <= index < len(self.relevant_image):
+            image_data = self.relevant_image[index]
+            self.relevant_figures_image.value = base64.b64decode(image_data)
+
+    def on_figure_change(self, change):
+        index = int(change.new.split()[-1]) - 1
+        self.update_relevant_figure(index)
 
 # Create and display the widget
 widget = PatentAnalysisWidget(load_config('./config.json'))
