@@ -36,8 +36,10 @@ def main(args):
         raise ValueError(f"Unsupported model: {model_llm}")
 
 
+    
     # Prepare arguments for get_data_from_patent
     dict_args = {
+        'model_llm': args['model_llm'],
         'patent_number': args['patent_number'],
         'claim_number': args['claim_number'],
         'field_of_invention': args['field_of_invention'],
@@ -51,19 +53,20 @@ def main(args):
     print('Obtaining Claim data')
     data_patent = utilsEPO.get_data_from_patent(**dict_args)
     
-    # print('Running RAG Pipeline')
+    # # print('Running RAG Pipeline')
     summary, references = run_RAG_pipeline(llm=llm,
                                      data_patent=data_patent,
                                      prompt_template=args['prompt_template'],
                                      print_prompt=args['print_prompt']
                                      )
+    print(summary)
     top_images = None
     
     if args['retrieve_patent_images'] and data_patent['pil_image'] and data_patent['encoded_image']:
+        
         # Retrieve numbers for e
-        dict_numbers = image_retrieval_pipeline.retrieve_numbers_from_image(data_patent['encoded_image'],model_llm)
-        print('Detected numbers for each figure: ', dict_numbers)
-        print(summary)
+        # dict_numbers = image_retrieval_pipeline.retrieve_numbers_from_image(data_patent['encoded_image'],model_llm)
+        
         # Retrieve most similar image
         top_indices = image_retrieval_pipeline.retrieve_similar_images(summary, data_patent['pil_image'], top_k=int(args['retrieve_top_k_images']))
         top_images = [data_patent['encoded_image'][idx] for idx in top_indices]
@@ -75,7 +78,7 @@ def main(args):
                          max_tokens_code = int(args['max_tokens_code']),
                          print_prompt=args['print_prompt'])
 
-    return summary, output_filename, data_patent['claim_text'], top_images
+    return summary, output_filename, data_patent, top_images
     
 if __name__ == "__main__":
 

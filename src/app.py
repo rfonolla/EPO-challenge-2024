@@ -92,8 +92,15 @@ class PatentAnalysisWidget:
             # Call the main function with the temporary config file
             summary, output_filename, claim_info,  relevant_image = main(load_config(temp_json_path))
 
-            self.claim_info.value = f"<p><strong>Claim information:</strong> {claim_info}</p>"
+            # Create HTML for dependant claims by joining list items into individual paragraphs
+            dependant_claims_html = "".join([f"<p>{claim}</p>" for claim in claim_info['depedant_claims_text']])
 
+            # Combine claim information and dependant claims
+            self.claim_info.value = (
+                f"<p><strong>Claim information:</strong> {claim_info['claim_text']}</p>"
+                f"<p><strong>Dependant claims:</strong></p>{dependant_claims_html}"
+            )
+            
             # Load and display the output image from the specified file path
             if output_filename and os.path.exists(output_filename):
                 with open(output_filename, 'rb') as f:

@@ -1,6 +1,7 @@
 import os
 import io
 import re
+import json
 
 import numpy as np
 from bs4 import BeautifulSoup
@@ -12,6 +13,43 @@ from epo.tipdata.epab import EPABClient
 # Own libs
 import utils
 
+#llama-index
+from llama_index.core.prompts import PromptTemplate
+from llama_index.core import Settings
+from llama_index.llms.anthropic import Anthropic
+
+
+def get_dependant_claims(claim_info, model_llm):
+    if 'claude' in model_llm.lower():
+        llm = Anthropic(model=model_llm, temperature=0.0, max_tokens=1024) # ["claude-3-5-sonnet-20240620","claude-3-opus-20240229", "claude-3-sonnet-20240229", "claude-3-haiku-20240307","gpt-3.5-turbo"]
+    elif 'gpt' in model_llm.lower():
+        llm = OpenAI(model=model_llm, temperature=0.0, max_tokens=1024)
+    else:
+        raise ValueError(f"Unsupported model: {model_llm}")
+
+    Settings.llm = llm
+    
+    prompt_template = 'You are an expert patent examienr. I want to know information about claim number 4. The claim text is the following:\
+    {claim_info}\n\
+    Are there any depedant claims? Return the number of claims I need to know for this specific claim. \nReturn the information as a JSON using the following template:\n\"dependant_claims\":\"list of integer claims\
+    Do not return any additional information or explanation.'
+
+    input_prompt = PromptTemplate((prompt_template))
+
+    summary = Settings.llm.complete(input_prompt.format(claim_info=claim_info))
+
+    response = summary.text
+    
+    # Extract the JSON part from the text
+    json_start = response.index('{')
+    json_end = response.rindex('}') + 1
+    json_str = response[json_start:json_end]
+    
+    # Parse the JSON string into a Python dictionary
+    data_dict = json.loads(json_str)
+
+    return data_dict
+    
 def count_claims(input_text):
     # Regular expression to match each claim in the text
     claim_pattern = r'<claim id="[^"]+" num="\d+"><claim-text>'
@@ -22,7 +60,7 @@ def count_claims(input_text):
     # Return the number of claims found
     return len(claims)
 
-def get_n_claim_alt(input_text, n_claim):
+def get_n_claim_alt(input_text):
     
     soup = BeautifulSoup(input_text, 'html.parser')
     elements = soup.find_all('claim-text')
@@ -33,30 +71,35 @@ def get_n_claim_alt(input_text, n_claim):
             continue
         else:  
             claim_info.append(text)
+            
+    return claim_info
 
-    return claim_info[n_claim]
+def get_n_claim(input_text, number_of_claims):
 
 
-def get_n_claim(input_text, n_claim):
+    claim_info = []
 
-    if len(str(n_claim)) == 1:
-        num_format = r'000' + str(n_claim) 
-    elif len(str(n_claim)) == 2:
-        num_format = r'00' + str(n_claim) 
-    elif len(str(n_claim)) == 3:
-        num_format = r'0' + str(n_claim) 
-    else:
-        num_format = r'\d{' + str(n_claim) + '}'
-    
-    # Regular expression to match each claim in the text with the adjusted number format
-    claim_pattern = rf'(<claim id="[^"]+" num="{num_format}"><claim-text>.*?)(?=<claim id|$)'
+    for n in range(number_of_claims):
+        
+        if len(str(n)) == 1:
+            num_format = r'000' + str(n) 
+        elif len(str(n)) == 2:
+            num_format = r'00' + str(n) 
+        elif len(str(n)) == 3:
+            num_format = r'0' + str(n) 
+        else:
+            num_format = r'\d{' + str(n) + '}'
+            
+        # Regular expression to match each claim in the text with the adjusted number format
+        claim_pattern = rf'(<claim id="[^"]+" num="{num_format}"><claim-text>.*?)(?=<claim id|$)'
+        claims = re.findall(claim_pattern, input_text,  re.DOTALL)
+        claim_info.append(claims)
 
     # Regular expression to match each claim in the text
     # Find all matches using the regex
-    claims = re.findall(claim_pattern, input_text,  re.DOTALL)
     
     # Return the number of claims found
-    return claims
+    return claim_info
     
 def get_patent_info_from_description(query):
     
@@ -124,8 +167,10 @@ def get_data_from_patent(**kwargs):
     brief_description_of_the_drawings = kwargs.get('brief_description_of_the_drawings', False)
     detailed_description_of_the_embodiments = kwargs.get('detailed_description_of_the_embodiments', False)
     retrieve_patent_images = kwargs.get('retrieve_patent_images', False)
+    model_llm = kwargs.get('model_llm')
     
     output_data = {'claim_text': None,
+                   'depedant_claims_text': None,
                    'field_of_invention_text':None,
                    'background_of_the_invetion_text':None,
                    'summary_of_the_invention_text':None,
@@ -147,19 +192,47 @@ def get_data_from_patent(**kwargs):
     patent_desc_info = get_patent_info_from_description(query_claims_description)
 
     ## CLAIM INFORMATION
-    claim_text = query_claims_description[0]['claims'][0]['text']
-
+    claim_text = query_claims_description[0]['claims'][0]['text']    
     number_of_claims = count_claims(claim_text)
-
+    depedant_claims_text = []
     if number_of_claims == 0: # try reading as if all claims are inside claim 1.
-        selected_claim = get_n_claim_alt(claim_text, n_claim=claim_number)
+
+        claim_info = get_n_claim_alt(claim_text)
+        selected_claim = claim_info[claim_number]
+        dependant_claims = get_dependant_claims(selected_claim, model_llm)
+        
+        if dependant_claims['dependant_claims']:
+            
+            print('Found depedant claims for the selected claim', dependant_claims['dependant_claims'])
+            
+            for dependant_claim_number in dependant_claims['dependant_claims']:
+                depedant_claims_text.append('Claim ' + str(dependant_claim_number) + '\n' + claim_info[dependant_claim_number])
+
         output_data['claim_text'] = selected_claim
+        output_data['depedant_claims_text'] = depedant_claims_text
+        
     elif number_of_claims != 0: # standard structure
-        selected_claim = get_n_claim(claim_text, n_claim=claim_number)
-        output_data['claim_text'] = epab.clean_text(selected_claim[0])
+        
+        claim_info = get_n_claim(claim_text,number_of_claims=number_of_claims)
+        selected_claim = epab.clean_text(claim_info[claim_number][0])
+
+        # Dependant claims
+        dependant_claims = get_dependant_claims(selected_claim, model_llm)
+        
+        if dependant_claims['dependant_claims']:
+            
+            print('Found depedant claims for the selected claim', dependant_claims['dependant_claims'])
+            
+            for dependant_claim_number in dependant_claims['dependant_claims']:
+                depedant_claim_text = epab.clean_text(claim_info[dependant_claim_number][0])
+                depedant_claims_text.append('Claim ' + str(dependant_claim_number) + '\n' + depedant_claim_text)
+                
+        output_data['claim_text'] = selected_claim
+        output_data['depedant_claims_text'] = depedant_claims_text # list of depedant claims
     else:
         raise ValueError("Could not read Claim information. Is the HTML in a correct format?")
-
+        
+    
     if field_of_invention:
         output_data['field_of_invention_text'] = patent_desc_info['FIELD OF THE INVENTION']
     if background_of_the_invetion:
@@ -171,7 +244,6 @@ def get_data_from_patent(**kwargs):
     if detailed_description_of_the_embodiments:
         output_data['detailed_description_of_the_embodiments_text'] = patent_desc_info['DETAILED DESCRIPTION OF THE EMBODIMENTS']
 
-    # Images TBD improve the retrieval
     if retrieve_patent_images:
         result = q.get_drawings(output_type="dataframe")
 
@@ -180,7 +252,7 @@ def get_data_from_patent(**kwargs):
         if number_images < 1:
             print('No attachments were found')
         else:        
-            print('There a total of' , number_images, ' images')
+            print('Found' , number_images, ' images')
     
             output_data['pil_image'] = [None] * number_images
             output_data['encoded_image'] = [None] * number_images

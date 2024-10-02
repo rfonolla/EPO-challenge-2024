@@ -17,10 +17,6 @@ def execute_dynamic_code(code_str):
     # Execute the temporary Python file
     result = subprocess.run(['python', temp_filename], capture_output=True, text=True)
     
-    # Print the output
-    print("Execution output:")
-    print(result.stdout)
-
     # Print any errors
     if result.stderr:
         print("Errors:")
@@ -60,8 +56,8 @@ def generate_image_from_code(input_text, prompt_template, output_filename, max_t
     # Execute code
     execution_result = execute_dynamic_code(result)
     
-    attempts =0    
-    while execution_result != 0 and attempts < 10:
+    attempts =1    
+    while execution_result != 0 and attempts <= 10:
         print('Found an error in the code: attempting to fix it. Attempt:', attempts)
         input_text_correction = "You are an expert Python developer specializing in SVG image generation. You have provided the following script {code}. \
         Your code is incorrect and shows the following error : {error}\

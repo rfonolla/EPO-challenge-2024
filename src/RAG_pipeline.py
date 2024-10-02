@@ -132,8 +132,14 @@ def run_RAG_pipeline(llm, prompt_template, data_patent, print_prompt=False):
     # Create the hierarchical query engine with loaded indices
     query_engine = HierarchicalQueryEngine(claims_VectorIndex, **additional_indices)
 
+    if data_patent['depedant_claims_text']:
+        # We want to reverse the loop to include the first depedant claim in the prompt
+        for text in reversed(data_patent['depedant_claims_text']):
+            prompt_template = prompt_template.replace("{information}", "{information} \n" + text + "\n ")
+        prompt_template = prompt_template.replace("{information}", "{information} \nDependant claims:\n ") 
+    print(prompt_template)
     # Example combined query
-    combined_response = query_engine.query(prompt_template, 
+    combined_response = query_engine.query(prompt_template , 
                                            claim_k=1, # number of entries for the claim
                                            additional_k=4, # number of entries for the description relevant if we used description text
                                            print_prompt=print_prompt
@@ -146,9 +152,6 @@ def run_RAG_pipeline(llm, prompt_template, data_patent, print_prompt=False):
     # Parse the JSON string into a Python dictionary
     data_dict = json.loads(json_str)
 
-
-
-    
     return data_dict['summary'], data_dict['reference']
     
 

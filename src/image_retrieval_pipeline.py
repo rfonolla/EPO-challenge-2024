@@ -52,6 +52,13 @@ def retrieve_numbers_from_image(images, model_llm):
 
 def retrieve_similar_images(query_text, image_data, top_k=1):
 
+    n_image = len(image_data)
+
+    print("Images", n_image)
+
+    # make sure we have the correct amount of top_k based on the amount of images
+    top_k = min(top_k, n_image)
+    
     # Load a pre-trained model that can handle both text and images
     model = SentenceTransformer('clip-ViT-B-32')
     # Get the image embedding for all images
