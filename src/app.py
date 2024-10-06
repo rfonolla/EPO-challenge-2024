@@ -95,7 +95,7 @@ class PatentAnalysisWidget:
             summary, output_filename, claim_info,  relevant_image = main(load_config(temp_json_path))
 
             # Create HTML for dependant claims by joining list items into individual paragraphs
-            dependant_claims_html = "".join([f"<p>{claim}</p>" for claim in claim_info['depedant_claims_text']])
+            dependant_claims_html = "".join([f"<p>{claim}</p>" for claim in claim_info['depedent_claims_text']])
 
             # Combine claim information and dependant claims
             self.claim_info.value = (

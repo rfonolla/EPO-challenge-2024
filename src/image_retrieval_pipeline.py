@@ -66,6 +66,8 @@ def retrieve_similar_images(query_text, image_data, top_k=1):
     else:
         device = 'cpu'
 
+    print(device)
+
     # Load a pre-trained model that can handle both text and images
     model = SentenceTransformer('clip-ViT-B-32',device=device)
     # Get the image embedding for all images

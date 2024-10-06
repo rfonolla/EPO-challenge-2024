@@ -22,8 +22,10 @@ from llama_index.llms.anthropic import Anthropic
 from llama_index.core.schema import MetadataMode
 from llama_index.core import StorageContext, load_index_from_storage
 from llama_index.core.prompts import PromptTemplate
+from llama_index.embeddings.huggingface import HuggingFaceEmbedding
 
-
+#custom imports
+import utils
 
 # Function to extract keywords from the static part of the prompt (ignoring placeholders)
 def extract_keywords_from_template(template):
@@ -108,7 +110,18 @@ def run_RAG_pipeline(llm, prompt_template, data_patent, print_prompt=False):
 
     Settings.llm = llm
     #Settings.embed_model = "local:BAAI/bge-small-en-v1.5"
-    Settings.embed_model = "local:BAAI/bge-m3"
+    if utils.check_gpu_is_free(min_memory=5): # 5GB should be more than enough for this model
+        device = 'cuda'
+    else:
+        device = 'cpu'
+
+    print(device)
+    embed_model = HuggingFaceEmbedding(
+        model_name="BAAI/bge-m3",
+        device=device
+    )
+
+    Settings.embed_model = embed_model
 
     document_claim = create_document_from_text(data_patent['claim_text'])
     claims_VectorIndex = VectorStoreIndex.from_documents([document_claim], llm=llm)

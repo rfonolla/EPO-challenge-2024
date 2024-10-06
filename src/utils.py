@@ -1,11 +1,23 @@
+# Standard library imports
 import re
-import numpy as np
 import json
 import io
 import base64
+
+# Third-party library imports
+import numpy as np
 from pynvml import *
 
 def encode_image_array(pil_image):
+    """
+    Encode a PIL Image to a base64 string.
+
+    Args:
+        pil_image (PIL.Image): The input PIL Image object.
+
+    Returns:
+        str: Base64 encoded string of the image.
+    """
     # Save PIL Image to a byte stream
     byte_stream = io.BytesIO()
     pil_image.save(byte_stream, format='JPEG')
@@ -15,29 +27,48 @@ def encode_image_array(pil_image):
     return base64.b64encode(byte_stream.getvalue()).decode('utf-8')
 
 def check_gpu_is_free(min_memory):
+    """
+    Check if the GPU has enough free memory.
+
+    Args:
+        min_memory (float): Minimum required free memory in GB.
+
+    Returns:
+        bool: True if GPU has enough free memory, False otherwise.
+    """
     nvmlInit()
     h = nvmlDeviceGetHandleByIndex(0)
     info = nvmlDeviceGetMemoryInfo(h)
-
-    if info.free*1e-9 > min_memory: #15 GB is llama3
-        return True
-    else:
-        return False
+    return info.free * 1e-9 > min_memory  # Convert bytes to GB
 
 def get_json_from_text(text):
+    """
+    Extract and parse JSON data from a text string.
 
+    Args:
+        text (str): Input text containing JSON data.
+
+    Returns:
+        dict: Parsed JSON data as a Python dictionary.
+    """
     # Extract the JSON string by finding the first { and last }
     start = text.find('{')
-    end = text.rfind('}') + 1  # to include the last }
+    end = text.rfind('}') + 1  # Include the last }
     
     json_string = text[start:end]
     # Convert the JSON string into a Python dictionary
-    data_dict = json.loads(json_string)
-
-    return data_dict
+    return json.loads(json_string)
 
 def get_code_from_text(text):
-    # Split the text by lines and filter out non-code content
+    """
+    Extract Python code from a text string containing markdown-style code blocks.
+
+    Args:
+        text (str): Input text containing Python code blocks.
+
+    Returns:
+        str: Extracted Python code as a single string.
+    """
     code_lines = []
     in_code_block = False
     
@@ -54,8 +85,4 @@ def get_code_from_text(text):
                 code_lines.append(line)
             
     # Join all captured code lines into a single code block
-    code_str = "\n".join(code_lines)
-
-    return code_str
-
-
+    return "\n".join(code_lines)
