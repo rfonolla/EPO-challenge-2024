@@ -22,10 +22,10 @@ from llama_index.llms.anthropic import Anthropic
 epab = EPABClient(env='PROD')
     
 
-def extract_dependent_claims(selected_claim, model_llm, claim_info, flag_alt,dependent_claim_exists=None):
+def extract_dependent_claims(selected_claim, claim_number, model_llm, claim_info, flag_alt,dependent_claim_exists=None):
     if dependent_claim_exists is None:
         dependent_claim_exists = set()
-    dependent_claims_info = get_dependent_claims(selected_claim, model_llm)
+    dependent_claims_info = get_dependent_claims(selected_claim, claim_number, model_llm)
     depedent_claims_text = []
 
     if dependent_claims_info['dependent_claims']:
@@ -49,7 +49,7 @@ def extract_dependent_claims(selected_claim, model_llm, claim_info, flag_alt,dep
     return depedent_claims_text
 
 
-def get_dependent_claims(claim_info, model_llm):
+def get_dependent_claims(claim_info, claim_number, model_llm):
     if 'claude' in model_llm.lower():
         llm = Anthropic(model=model_llm, temperature=0.0, max_tokens=1024) # ["claude-3-5-sonnet-20240620","claude-3-opus-20240229", "claude-3-sonnet-20240229", "claude-3-haiku-20240307","gpt-3.5-turbo"]
     elif 'gpt' in model_llm.lower():
@@ -59,17 +59,18 @@ def get_dependent_claims(claim_info, model_llm):
 
     Settings.llm = llm
     
-    prompt_template = 'You are an expert patent examienr. I want to know information about claim number 4. The claim text is the following:\
+    prompt_template = 'You are an expert patent examienr. I want to know information about claim number {claim_number}. The claim text is the following:\
     {claim_info}\n\
-    Are there any depedant claims? Return the number of claims I need to know for this specific claim. \nReturn the information as a JSON using the following template:\n\"dependent_claims\":\"list of integer claims\
+    Are there any depedant claims? Return the number of claims I need to know for this specific claim.\Only return dependent claims if it is explicit mentiond in the claim information. \nDo not infer information. \nReturn the information as a JSON using the following template:\n\"dependent_claims\":\"list of integer claims\
     Do not return any additional information or explanation.'
 
     input_prompt = PromptTemplate((prompt_template))
 
-    summary = Settings.llm.complete(input_prompt.format(claim_info=claim_info))
+    summary = Settings.llm.complete(input_prompt.format(claim_number=claim_number,
+                                                        claim_info=claim_info))
 
     response = summary.text
-    
+
     # Extract the JSON part from the text
     json_start = response.index('{')
     json_end = response.rindex('}') + 1
@@ -78,6 +79,12 @@ def get_dependent_claims(claim_info, model_llm):
     # Parse the JSON string into a Python dictionary
     data_dict = json.loads(json_str)
 
+    # Do a check if any claims are found that are higher number than selected claim (e.g claim 2 cannot be dependent on claim 3)
+
+    data_dict['dependent_claims'] = [num for num in data_dict['dependent_claims'] if num < selected_number]
+
+    print(data_dict)
+        
     return data_dict
     
 def count_claims(input_text):
@@ -232,7 +239,7 @@ def get_data_from_patent(**kwargs):
         selected_claim = claim_info[claim_number]
 
         if dependent_claims:
-            depedent_claims_text = extract_dependent_claims(selected_claim, model_llm, claim_info, False)
+            depedent_claims_text = extract_dependent_claims(selected_claim, claim_number, model_llm, claim_info, False)
             output_data['depedent_claims_text'] = depedent_claims_text
         
     elif number_of_claims != 0: # standard structure
@@ -242,7 +249,7 @@ def get_data_from_patent(**kwargs):
         selected_claim = epab.clean_text(claim_info[claim_number-1][0])
 
         if dependent_claims: 
-            depedent_claims_text = extract_dependent_claims(selected_claim, model_llm, claim_info, True)
+            depedent_claims_text = extract_dependent_claims(selected_claim, claim_number, model_llm, claim_info, True)
             output_data['depedent_claims_text'] = depedent_claims_text # list of depedant claims
 
     else:

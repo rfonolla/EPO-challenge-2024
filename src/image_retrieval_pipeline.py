@@ -1,7 +1,9 @@
 import anthropic
 import utils
 import collections
-from sentence_transformers import SentenceTransformer, util
+from sentence_transformers import SentenceTransformer
+from sentence_transformers import util as SentenceTrasnformerUtil
+import utils
 from PIL import Image
 import torch
 import numpy as np
@@ -58,9 +60,14 @@ def retrieve_similar_images(query_text, image_data, top_k=1):
 
     # make sure we have the correct amount of top_k based on the amount of images
     top_k = min(top_k, n_image)
-    
+
+    if utils.check_gpu_is_free(min_memory=5): # 5GB should be more than enough for this model
+        device = 'cuda'
+    else:
+        device = 'cpu'
+
     # Load a pre-trained model that can handle both text and images
-    model = SentenceTransformer('clip-ViT-B-32')
+    model = SentenceTransformer('clip-ViT-B-32',device=device)
     # Get the image embedding for all images
     image_embedding = model.encode(image_data, convert_to_tensor=True)
 
@@ -68,7 +75,7 @@ def retrieve_similar_images(query_text, image_data, top_k=1):
     query_embedding = model.encode([query_text], convert_to_tensor=True)
 
     # Compute cosine similarities
-    cos_scores = util.cos_sim(query_embedding, image_embedding)[0]
+    cos_scores = SentenceTrasnformerUtil.cos_sim(query_embedding, image_embedding)[0]
     
     # Get top k results
     top_results = torch.topk(cos_scores, k=top_k)

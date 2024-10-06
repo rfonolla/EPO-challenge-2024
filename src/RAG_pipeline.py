@@ -133,9 +133,9 @@ def run_RAG_pipeline(llm, prompt_template, data_patent, print_prompt=False):
     # Create the hierarchical query engine with loaded indices
     query_engine = HierarchicalQueryEngine(claims_VectorIndex, **additional_indices)
 
-    if data_patent['depedant_claims_text']:
+    if data_patent['depedent_claims_text']:
         # We want to reverse the loop to include the first depedant claim in the prompt
-        for text in reversed(data_patent['depedant_claims_text']):
+        for text in reversed(data_patent['depedent_claims_text']):
             prompt_template = prompt_template.replace("{information}", "{information} \n" + text + "\n ")
         prompt_template = prompt_template.replace("{information}", "{information} \nDependant claims:\n ") 
     # Example combined query

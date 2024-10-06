@@ -148,4 +148,4 @@ class PatentAnalysisWidget:
         self.update_relevant_figure(index)
 
 # Create and display the widget
-widget = PatentAnalysisWidget(load_config('./config.json'))
+widget = PatentAnalysisWidget(load_config('./default_config.json'))

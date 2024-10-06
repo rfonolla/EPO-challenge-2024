@@ -3,6 +3,7 @@ import numpy as np
 import json
 import io
 import base64
+from pynvml import *
 
 def encode_image_array(pil_image):
     # Save PIL Image to a byte stream
@@ -13,12 +14,12 @@ def encode_image_array(pil_image):
     # Encode to base64
     return base64.b64encode(byte_stream.getvalue()).decode('utf-8')
 
-def check_gpu_is_free():
+def check_gpu_is_free(min_memory):
     nvmlInit()
     h = nvmlDeviceGetHandleByIndex(0)
     info = nvmlDeviceGetMemoryInfo(h)
 
-    if info.free*1e-9 > 12: #15 GB is llama3
+    if info.free*1e-9 > min_memory: #15 GB is llama3
         return True
     else:
         return False
