@@ -5,6 +5,7 @@
     "max_tokens_code": 2048,
     "patent_number": "EP4014838A1",
     "claim_number": 1,
+    "dependent_claims":true,
     "field_of_invention": true,
     "background_of_the_invetion": true,
     "summary_of_the_invetion": false,

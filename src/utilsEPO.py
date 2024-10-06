@@ -18,8 +18,38 @@ from llama_index.core.prompts import PromptTemplate
 from llama_index.core import Settings
 from llama_index.llms.anthropic import Anthropic
 
+# EPAB Client
+epab = EPABClient(env='PROD')
+    
 
-def get_dependant_claims(claim_info, model_llm):
+def extract_dependent_claims(selected_claim, model_llm, claim_info, flag_alt,dependent_claim_exists=None):
+    if dependent_claim_exists is None:
+        dependent_claim_exists = set()
+    dependent_claims_info = get_dependent_claims(selected_claim, model_llm)
+    depedent_claims_text = []
+
+    if dependent_claims_info['dependent_claims']:
+        
+        print('Found depedent claims', dependent_claims_info["dependent_claims"])
+
+        for dependent_claim_number in dependent_claims_info['dependent_claims']:
+            if dependent_claim_number not in dependent_claim_exists:
+                dependent_claim_exists.add(dependent_claim_number)
+                if flag_alt:
+                    depedent_claim_text = epab.clean_text(claim_info[dependent_claim_number-1][0])
+                    depedent_claims_text.append('Claim ' + str(dependent_claim_number) + '\n' + depedent_claim_text)
+                else:
+                    depedent_claim_text = f'Claim {dependent_claim_number}\n{claim_info[dependent_claim_number-1]}'
+                depedent_claims_text.append(depedent_claim_text)
+                
+                # Recursively get dependent claims
+                nested_claims = extract_dependent_claims(dependent_claim_number, model_llm, claim_info,flag_alt,dependent_claim_exists)
+                depedent_claims_text.extend(nested_claims)
+
+    return depedent_claims_text
+
+
+def get_dependent_claims(claim_info, model_llm):
     if 'claude' in model_llm.lower():
         llm = Anthropic(model=model_llm, temperature=0.0, max_tokens=1024) # ["claude-3-5-sonnet-20240620","claude-3-opus-20240229", "claude-3-sonnet-20240229", "claude-3-haiku-20240307","gpt-3.5-turbo"]
     elif 'gpt' in model_llm.lower():
@@ -31,7 +61,7 @@ def get_dependant_claims(claim_info, model_llm):
     
     prompt_template = 'You are an expert patent examienr. I want to know information about claim number 4. The claim text is the following:\
     {claim_info}\n\
-    Are there any depedant claims? Return the number of claims I need to know for this specific claim. \nReturn the information as a JSON using the following template:\n\"dependant_claims\":\"list of integer claims\
+    Are there any depedant claims? Return the number of claims I need to know for this specific claim. \nReturn the information as a JSON using the following template:\n\"dependent_claims\":\"list of integer claims\
     Do not return any additional information or explanation.'
 
     input_prompt = PromptTemplate((prompt_template))
@@ -79,7 +109,7 @@ def get_n_claim(input_text, number_of_claims):
 
     claim_info = []
 
-    for n in range(number_of_claims):
+    for n in range(1,number_of_claims+1):
         
         if len(str(n)) == 1:
             num_format = r'000' + str(n) 
@@ -95,10 +125,6 @@ def get_n_claim(input_text, number_of_claims):
         claims = re.findall(claim_pattern, input_text,  re.DOTALL)
         claim_info.append(claims)
 
-    # Regular expression to match each claim in the text
-    # Find all matches using the regex
-    
-    # Return the number of claims found
     return claim_info
     
 def get_patent_info_from_description(query):
@@ -161,6 +187,7 @@ def get_data_from_patent(**kwargs):
     
     search_number = kwargs.get('patent_number', False)
     claim_number = kwargs.get('claim_number')
+    dependent_claims = kwargs.get('dependent_claims')
     field_of_invention = kwargs.get('field_of_invention', False)
     background_of_the_invetion = kwargs.get('background_of_the_invetion', False)
     summary_of_the_invetion = kwargs.get('summary_of_the_invetion', False)
@@ -170,7 +197,7 @@ def get_data_from_patent(**kwargs):
     model_llm = kwargs.get('model_llm')
     
     output_data = {'claim_text': None,
-                   'depedant_claims_text': None,
+                   'depedent_claims_text': None,
                    'field_of_invention_text':None,
                    'background_of_the_invetion_text':None,
                    'summary_of_the_invention_text':None,
@@ -180,9 +207,7 @@ def get_data_from_patent(**kwargs):
                    'encoded_image': None
                   } 
 
-    # Start EPO Client
-    epab = EPABClient(env='PROD')
-    
+
     # Get patent by number
     print('Patent number:', search_number)
     q = epab.query_epab_doc_id(search_number)
@@ -194,45 +219,36 @@ def get_data_from_patent(**kwargs):
     ## CLAIM INFORMATION
     claim_text = query_claims_description[0]['claims'][0]['text']    
     number_of_claims = count_claims(claim_text)
-    depedant_claims_text = []
+    depedent_claims_text = []
+
+    
     if number_of_claims == 0: # try reading as if all claims are inside claim 1.
 
         claim_info = get_n_claim_alt(claim_text)
-        selected_claim = claim_info[claim_number]
-        dependant_claims = get_dependant_claims(selected_claim, model_llm)
-        
-        if dependant_claims['dependant_claims']:
-            
-            print('Found depedant claims for the selected claim', dependant_claims['dependant_claims'])
-            
-            for dependant_claim_number in dependant_claims['dependant_claims']:
-                depedant_claims_text.append('Claim ' + str(dependant_claim_number) + '\n' + claim_info[dependant_claim_number])
 
-        output_data['claim_text'] = selected_claim
-        output_data['depedant_claims_text'] = depedant_claims_text
+        if claim_number > len(claim_info):
+            raise ValueError('Claim number not available, the number of claims for this patent is:', len(claim_info))
+        
+        selected_claim = claim_info[claim_number]
+
+        if dependent_claims:
+            depedent_claims_text = extract_dependent_claims(selected_claim, model_llm, claim_info, False)
+            output_data['depedent_claims_text'] = depedent_claims_text
         
     elif number_of_claims != 0: # standard structure
-        
+        if claim_number > number_of_claims:
+            raise ValueError('Claim number not available, the number of claims for this patent is:', number_of_claims)
         claim_info = get_n_claim(claim_text,number_of_claims=number_of_claims)
-        selected_claim = epab.clean_text(claim_info[claim_number][0])
+        selected_claim = epab.clean_text(claim_info[claim_number-1][0])
 
-        # Dependant claims
-        dependant_claims = get_dependant_claims(selected_claim, model_llm)
-        
-        if dependant_claims['dependant_claims']:
-            
-            print('Found depedant claims for the selected claim', dependant_claims['dependant_claims'])
-            
-            for dependant_claim_number in dependant_claims['dependant_claims']:
-                depedant_claim_text = epab.clean_text(claim_info[dependant_claim_number][0])
-                depedant_claims_text.append('Claim ' + str(dependant_claim_number) + '\n' + depedant_claim_text)
-                
-        output_data['claim_text'] = selected_claim
-        output_data['depedant_claims_text'] = depedant_claims_text # list of depedant claims
+        if dependent_claims: 
+            depedent_claims_text = extract_dependent_claims(selected_claim, model_llm, claim_info, True)
+            output_data['depedent_claims_text'] = depedent_claims_text # list of depedant claims
+
     else:
         raise ValueError("Could not read Claim information. Is the HTML in a correct format?")
         
-    
+    output_data['claim_text'] = selected_claim
     if field_of_invention:
         output_data['field_of_invention_text'] = patent_desc_info['FIELD OF THE INVENTION']
     if background_of_the_invetion:

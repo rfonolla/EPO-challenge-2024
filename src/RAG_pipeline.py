@@ -107,7 +107,8 @@ def create_document_from_text(text):
 def run_RAG_pipeline(llm, prompt_template, data_patent, print_prompt=False):
 
     Settings.llm = llm
-    Settings.embed_model = "local:BAAI/bge-small-en-v1.5"
+    #Settings.embed_model = "local:BAAI/bge-small-en-v1.5"
+    Settings.embed_model = "local:BAAI/bge-m3"
 
     document_claim = create_document_from_text(data_patent['claim_text'])
     claims_VectorIndex = VectorStoreIndex.from_documents([document_claim], llm=llm)
@@ -137,7 +138,6 @@ def run_RAG_pipeline(llm, prompt_template, data_patent, print_prompt=False):
         for text in reversed(data_patent['depedant_claims_text']):
             prompt_template = prompt_template.replace("{information}", "{information} \n" + text + "\n ")
         prompt_template = prompt_template.replace("{information}", "{information} \nDependant claims:\n ") 
-    print(prompt_template)
     # Example combined query
     combined_response = query_engine.query(prompt_template , 
                                            claim_k=1, # number of entries for the claim

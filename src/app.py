@@ -31,17 +31,19 @@ class PatentAnalysisWidget:
             if key in ['model_llm', 'patent_number']:
                 widget = widgets.Text(description=key, value=str(value))
             elif key in ['temperature', 'max_tokens', 'max_tokens_code']:
-                widget = widgets.FloatText(description=key, value=float(value))
+                continue
+                # widget = widgets.FloatText(description=key, value=float(value))
             elif key == 'claim_number':
                 widget = widgets.IntText(description=key, value=int(value))
-            elif key in ['field_of_invention', 'background_of_the_invetion', 'summary_of_the_invetion', 
+            elif key in ['dependent_claims','field_of_invention', 'background_of_the_invetion', 'summary_of_the_invetion', 
                          'brief_description_of_the_drawings', 'detailed_description_of_the_embodiments', 
                          'retrieve_patent_images', 'print_prompt']:
                 widget = widgets.Checkbox(description=key, value=bool(value))
             elif key == 'output_filename':
                 widget = widgets.Text(description=key, value=str(value))
-            elif key in ['prompt_template', 'prompt_template_image']:
-                widget = widgets.Textarea(description=key, value=str(value), layout=widgets.Layout(width='100%', height='100px'))
+            elif key in ['prompt_template', 'prompt_template_image','temperature','max_token']:
+                continue
+            #     widget = widgets.Textarea(description=key, value=str(value), layout=widgets.Layout(width='100%', height='100px'))
             else:
                 widget = widgets.Text(description=key, value=str(value))
             
@@ -82,11 +84,11 @@ class PatentAnalysisWidget:
 
         # Collect input data
         input_data = {key: widget.value for key, widget in self.input_widgets.items()}
-        
+        updated_schema = {**self.schema, **input_data}
         # Save input data to a temporary JSON file
         temp_json_path = 'temp_config.json'
         with open(temp_json_path, 'w') as f:
-            json.dump(input_data, f)
+            json.dump(updated_schema, f)
         
         try:
             # Call the main function with the temporary config file

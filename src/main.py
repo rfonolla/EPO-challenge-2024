@@ -42,6 +42,7 @@ def main(args):
         'model_llm': args['model_llm'],
         'patent_number': args['patent_number'],
         'claim_number': args['claim_number'],
+        'dependent_claims': args['dependent_claims'],
         'field_of_invention': args['field_of_invention'],
         'background_of_the_invetion': args['background_of_the_invetion'],
         'summary_of_the_invetion': args['summary_of_the_invetion'],
@@ -79,7 +80,6 @@ def main(args):
                          print_prompt=args['print_prompt'])
 
     return summary, output_filename, data_patent, top_images
-    
 if __name__ == "__main__":
 
     parser = argparse.ArgumentParser(description="Runs claude with an input config JSON file.")
