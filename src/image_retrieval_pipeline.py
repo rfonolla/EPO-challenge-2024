@@ -2,82 +2,106 @@ import anthropic
 import utils
 import collections
 from sentence_transformers import SentenceTransformer
-from sentence_transformers import util as SentenceTrasnformerUtil
-import utils
+from sentence_transformers import util as SentenceTransformerUtil
 from PIL import Image
 import torch
 import numpy as np
 
-def run_claude_on_image(client,image_encoded):
+def run_claude_on_image(client: anthropic.Anthropic, image_encoded: str) -> str:
+    """
+    Run Claude AI on an encoded image to extract figure numbers.
 
-    user_input = f"Extract the numbers of each figure and return a json with fields 'FIGX' containing all variations of the numbers as strings." 
+    Args:
+        client (anthropic.Anthropic): Anthropic client instance.
+        image_encoded (str): Base64 encoded image data.
+
+    Returns:
+        str: JSON string containing extracted figure numbers.
+    """
+    user_input = "Extract the numbers of each figure and return a json with fields 'FIGX' containing all variations of the numbers as strings."
     response = client.messages.create(
         model="claude-3-5-sonnet-20240620",
         max_tokens=1024,
         messages=[
-            {"role": "user",
-             "content": [
-                 {"type": "image",
-                  "source": {"type": "base64",
-                             "media_type": "image/jpeg",
-                             "data": image_encoded,
-                            },
-                 },
-                 {
-                     "type": "text",
-                     "text": user_input
-                 }
-             ],
+            {
+                "role": "user",
+                "content": [
+                    {
+                        "type": "image",
+                        "source": {
+                            "type": "base64",
+                            "media_type": "image/jpeg",
+                            "data": image_encoded,
+                        },
+                    },
+                    {
+                        "type": "text",
+                        "text": user_input
+                    }
+                ],
             }
         ],
     )
     
     return response.content[0].text
 
-def retrieve_numbers_from_image(images, model_llm):
+def retrieve_numbers_from_image(images: list, model_llm: str) -> dict:
+    """
+    Retrieve figure numbers from a list of images using Claude AI.
 
+    Args:
+        images (list): List of base64 encoded image data.
+        model_llm (str): Name of the language model to use.
+
+    Returns:
+        dict: Dictionary containing extracted figure numbers for each image.
+    """
     client = anthropic.Anthropic()
     dict_numbers = collections.defaultdict(dict)
-
+    
     if 'claude' in model_llm.lower():
-        for idx,image_encoded in enumerate(images):
-            output_text = run_claude_on_image(client,image_encoded)
-            _tmpdict = utils.get_json_from_text(output_text)
-            for d in _tmpdict:
-                dict_numbers[d] = _tmpdict[d]            
+        for idx, image_encoded in enumerate(images):
+            output_text = run_claude_on_image(client, image_encoded)
+            tmp_dict = utils.get_json_from_text(output_text)
+            for d in tmp_dict:
+                dict_numbers[d] = tmp_dict[d]            
     else:
         print('N.A')
-        return 0
+        return {}
+    
+    return dict(dict_numbers)
 
-    return  dict_numbers
+def retrieve_similar_images(query_text: str, image_data: list, top_k: int = 1) -> list:
+    """
+    Retrieve similar images based on a text query using CLIP model.
 
+    Args:
+        query_text (str): Text query to match against images.
+        image_data (list): List of image data (PIL Images or file paths).
+        top_k (int): Number of top similar images to retrieve.
 
-def retrieve_similar_images(query_text, image_data, top_k=1):
-
+    Returns:
+        list: Indices of top similar images.
+    """
     n_image = len(image_data)
-
-    print("Images", n_image)
-
-    # make sure we have the correct amount of top_k based on the amount of images
+    print(f"Number of images: {n_image}")
+    
+    # Ensure top_k doesn't exceed the number of available images
     top_k = min(top_k, n_image)
-
-    if utils.check_gpu_is_free(min_memory=5): # 5GB should be more than enough for this model
-        device = 'cuda'
-    else:
-        device = 'cpu'
-
-    print(device)
-
-    # Load a pre-trained model that can handle both text and images
-    model = SentenceTransformer('clip-ViT-B-32',device=device)
-    # Get the image embedding for all images
+    
+    # Check for GPU availability
+    device = 'cuda' if utils.check_gpu_is_free(min_memory=5) else 'cpu'
+    print(f"Using device: {device}")
+    
+    # Load pre-trained CLIP model
+    model = SentenceTransformer('clip-ViT-B-32', device=device)
+    
+    # Encode images and query text
     image_embedding = model.encode(image_data, convert_to_tensor=True)
-
-    # Encode the query text
     query_embedding = model.encode([query_text], convert_to_tensor=True)
-
+    
     # Compute cosine similarities
-    cos_scores = SentenceTrasnformerUtil.cos_sim(query_embedding, image_embedding)[0]
+    cos_scores = SentenceTransformerUtil.cos_sim(query_embedding, image_embedding)[0]
     
     # Get top k results
     top_results = torch.topk(cos_scores, k=top_k)
@@ -85,9 +109,5 @@ def retrieve_similar_images(query_text, image_data, top_k=1):
     # Print results
     for idx, score in zip(top_results.indices.tolist(), top_results.values.tolist()):
         print(f"Image index: {idx}, Similarity Score: {score:.4f}")
-
-    return top_results.indices.tolist()
-
-
     
-
+    return top_results.indices.tolist()
