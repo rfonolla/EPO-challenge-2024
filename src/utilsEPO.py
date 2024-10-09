@@ -55,7 +55,7 @@ def extract_dependent_claims(selected_claim, claim_number, model_llm, claim_info
                 dependent_claims_text.append(dependent_claim_text)
                 
                 # Recursively get nested dependent claims
-                nested_claims = extract_dependent_claims(dependent_claim_number, model_llm, claim_info, flag_alt, dependent_claim_exists)
+                nested_claims = extract_dependent_claims(dependent_claim_text, dependent_claim_number, model_llm, claim_info, flag_alt, dependent_claim_exists)
                 dependent_claims_text.extend(nested_claims)
 
     return dependent_claims_text
@@ -301,7 +301,7 @@ def get_data_from_patent(**kwargs):
         claim_info = get_n_claim(claim_text, number_of_claims=number_of_claims)
         selected_claim = epab.clean_text(claim_info[claim_number-1][0])
         if dependent_claims:
-            dependent_claims_text = extract_dependent_claims(selected_claim, claim_number, model_llm, claim_info, True)
+            dependent_claims_text = extract_dependent_claims(selected_claim, claim_number, model_llm, claim_info, True, None)
     else:
         raise ValueError("Could not read Claim information. Is the HTML in a correct format?")
 

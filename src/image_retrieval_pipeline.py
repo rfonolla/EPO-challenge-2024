@@ -1,8 +1,8 @@
 import anthropic
 import utils
 import collections
-from sentence_transformers import SentenceTransformer
-from sentence_transformers import util as SentenceTransformerUtil
+from transformers import CLIPProcessor, CLIPModel
+
 from PIL import Image
 import torch
 import numpy as np
@@ -71,6 +71,7 @@ def retrieve_numbers_from_image(images: list, model_llm: str) -> dict:
     
     return dict(dict_numbers)
 
+
 def retrieve_similar_images(query_text: str, image_data: list, top_k: int = 1) -> list:
     """
     Retrieve similar images based on a text query using CLIP model.
@@ -93,21 +94,82 @@ def retrieve_similar_images(query_text: str, image_data: list, top_k: int = 1) -
     device = 'cuda' if utils.check_gpu_is_free(min_memory=5) else 'cpu'
     print(f"Using device: {device}")
     
-    # Load pre-trained CLIP model
-    model = SentenceTransformer('clip-ViT-B-32', device=device)
+    # Load pre-trained CLIP model and processor
+    model = CLIPModel.from_pretrained("openai/clip-vit-large-patch14").to(device)
+    processor = CLIPProcessor.from_pretrained("openai/clip-vit-large-patch14")
     
-    # Encode images and query text
-    image_embedding = model.encode(image_data, convert_to_tensor=True)
-    query_embedding = model.encode([query_text], convert_to_tensor=True)
+    # Process the text input
+    text_inputs = processor(text=[query_text], return_tensors="pt", padding=True, truncation=True)
+    text_inputs = {k: v.to(device) for k, v in text_inputs.items()}
     
-    # Compute cosine similarities
-    cos_scores = SentenceTransformerUtil.cos_sim(query_embedding, image_embedding)[0]
+    # Process the images
+    image_inputs = processor(images=image_data, return_tensors="pt", padding=True)
+    image_inputs = {k: v.to(device) for k, v in image_inputs.items()}
+    
+    # Generate embeddings
+    with torch.no_grad():
+        text_features = model.get_text_features(**text_inputs)
+        image_features = model.get_image_features(**image_inputs)
+    
+    # Normalize features
+    text_features = text_features / text_features.norm(dim=-1, keepdim=True)
+    image_features = image_features / image_features.norm(dim=-1, keepdim=True)
+    
+    # Compute similarity scores
+    similarity_scores = (text_features @ image_features.T).squeeze(0)
     
     # Get top k results
-    top_results = torch.topk(cos_scores, k=top_k)
+    top_results = torch.topk(similarity_scores, k=top_k)
     
     # Print results
     for idx, score in zip(top_results.indices.tolist(), top_results.values.tolist()):
         print(f"Image index: {idx}, Similarity Score: {score:.4f}")
     
     return top_results.indices.tolist()
+
+
+# def retrieve_similar_images(query_text: str, image_data: list, top_k: int = 1) -> list:
+#     """
+#     Retrieve similar images based on a text query using CLIP model.
+
+#     Args:
+#         query_text (str): Text query to match against images.
+#         image_data (list): List of image data (PIL Images or file paths).
+#         top_k (int): Number of top similar images to retrieve.
+
+#     Returns:
+#         list: Indices of top similar images.
+#     """
+#     from transformers import CLIPTokenizer
+
+#     n_image = len(image_data)
+#     print(f"Number of images: {n_image}")
+    
+#     # Ensure top_k doesn't exceed the number of available images
+#     top_k = min(top_k, n_image)
+    
+#     # Check for GPU availability
+#     device = 'cuda' if utils.check_gpu_is_free(min_memory=5) else 'cpu'
+#     print(f"Using device: {device}")
+#     print(query_text)
+#     # Load pre-trained CLIP model
+#     model = SentenceTransformer('clip-ViT-L-14', device=device)
+#     text_token = model.tokenizer(query_text)
+
+#     tokenizer = CLIPTokenizer.from_pretrained("openai/clip-vit-base-patch32")
+#     tokens = tokenizer.tokenize(query_text)
+#     print(len(tokens))
+#     # Encode images and query text
+#     image_embedding = model.encode(image_data, convert_to_tensor=True)
+#     query_embedding = model.encode(text_token, convert_to_tensor=True)
+#     # Compute cosine similarities
+#     cos_scores = SentenceTransformerUtil.cos_sim(query_embedding, image_embedding)[0]
+    
+#     # Get top k results
+#     top_results = torch.topk(cos_scores, k=top_k)
+    
+#     # Print results
+#     for idx, score in zip(top_results.indices.tolist(), top_results.values.tolist()):
+#         print(f"Image index: {idx}, Similarity Score: {score:.4f}")
+    
+#     return top_results.indices.tolist()

@@ -169,7 +169,7 @@ def run_RAG_pipeline(llm, prompt_template: str, data_patent: dict, print_prompt:
     # Create indices for additional patent information
     additional_patent_info = [
         'field_of_invention_text',
-        'background_of_the_invetion_text',
+        'background_of_the_invention_text',
         'summary_of_the_invention_text',
         'brief_description_of_the_drawings_text',
         'detailed_description_of_the_embodiments_text'
@@ -187,8 +187,8 @@ def run_RAG_pipeline(llm, prompt_template: str, data_patent: dict, print_prompt:
     query_engine = HierarchicalQueryEngine(claims_VectorIndex, **additional_indices)
 
     # Modify prompt template if dependent claims exist
-    if data_patent['depedent_claims_text']:
-        for text in reversed(data_patent['depedent_claims_text']):
+    if data_patent['dependent_claims_text']:
+        for text in reversed(data_patent['dependent_claims_text']):
             prompt_template = prompt_template.replace("{information}", "{information} \n" + text + "\n ")
         prompt_template = prompt_template.replace("{information}", "{information} \nDependant claims:\n ") 
 
