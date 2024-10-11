@@ -78,8 +78,6 @@ def main(args):
             prompt_template=args['prompt_template'],
             print_prompt=args['print_prompt']
         )
-    print(summary)
-    print(references)
     
     top_images = None
     if args['retrieve_patent_images'] and data_patent['pil_image'] and data_patent['encoded_image']:
@@ -93,18 +91,17 @@ def main(args):
         
         # print('Summarizing claim based on most informative images...')
         summary, references = image_retrieval_pipeline.run_summary_with_retrieved_images(input_prompt, top_images, model_llm)
-        print(summary)
-        print(references)
-    # print('Generating image from summary...')
-    # output_filename = generate_image_from_code(
-    #     summary, 
-    #     prompt_template=args['prompt_template_image'],
-    #     output_filename=args['output_filename'],
-    #     max_tokens_code=int(args['max_tokens_code']),
-    #     print_prompt=args['print_prompt']
-    # )
+
+    print('Generating image from summary...')
+    output_filename = generate_image_from_code(
+        summary, 
+        prompt_template=args['prompt_template_image'],
+        output_filename=args['output_filename'],
+        max_tokens_code=int(args['max_tokens_code']),
+        print_prompt=args['print_prompt']
+    )
     
-    # return summary, output_filename, data_patent, top_images
+    return summary, output_filename, data_patent, top_images
     return 0
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Runs claude with an input config JSON file.")
