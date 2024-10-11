@@ -50,13 +50,8 @@ def main(args):
     """
     # Initialize the appropriate LLM based on the model name
     model_llm = args['model_llm']
-    
-    if 'claude' in model_llm.lower():
-        llm = Anthropic(model=model_llm, temperature=int(args['temperature']), max_tokens=int(args['max_tokens']))
-    elif 'gpt' in model_llm.lower():
-        llm = OpenAI(model=model_llm, temperature=int(args['temperature']), max_tokens=int(args['max_tokens']))
-    else:
-        raise ValueError(f"Unsupported model: {model_llm}")
+    llm = Anthropic(model=model_llm, temperature=int(args['temperature']), max_tokens=int(args['max_tokens']))
+
     
     # Prepare arguments for get_data_from_patent
     dict_args = {
@@ -65,8 +60,8 @@ def main(args):
         'claim_number': args['claim_number'],
         'dependent_claims': args['dependent_claims'],
         'field_of_invention': args['field_of_invention'],
-        'background_of_the_invetion': args['background_of_the_invetion'],
-        'summary_of_the_invetion': args['summary_of_the_invetion'],
+        'background_of_the_invetion': args['background_of_the_invention'],
+        'summary_of_the_invention': args['summary_of_the_invention'],
         'brief_description_of_the_drawings': args['brief_description_of_the_drawings'],
         'detailed_description_of_the_embodiments': args['detailed_description_of_the_embodiments'],
         'retrieve_patent_images': args['retrieve_patent_images']
@@ -76,12 +71,15 @@ def main(args):
     data_patent = utilsEPO.get_data_from_patent(**dict_args)
 
     print('Summarizing claim...')
-    summary, references = run_RAG_pipeline(
-        llm=llm,
-        data_patent=data_patent,
-        prompt_template=args['prompt_template'],
-        print_prompt=args['print_prompt']
-    )
+    summary, references, input_prompt = run_RAG_pipeline(
+            llm=llm,
+            retrieved_images=None,
+            data_patent=data_patent,
+            prompt_template=args['prompt_template'],
+            print_prompt=args['print_prompt']
+        )
+    print(summary)
+    print(references)
     
     top_images = None
     if args['retrieve_patent_images'] and data_patent['pil_image'] and data_patent['encoded_image']:
@@ -92,18 +90,22 @@ def main(args):
             top_k=int(args['retrieve_top_k_images'])
         )
         top_images = [data_patent['encoded_image'][idx] for idx in top_indices]
-
-    print('Generating image from summary...')
-    output_filename = generate_image_from_code(
-        summary, 
-        prompt_template=args['prompt_template_image'],
-        output_filename=args['output_filename'],
-        max_tokens_code=int(args['max_tokens_code']),
-        print_prompt=args['print_prompt']
-    )
+        
+        # print('Summarizing claim based on most informative images...')
+        summary, references = image_retrieval_pipeline.run_summary_with_retrieved_images(input_prompt, top_images, model_llm)
+        print(summary)
+        print(references)
+    # print('Generating image from summary...')
+    # output_filename = generate_image_from_code(
+    #     summary, 
+    #     prompt_template=args['prompt_template_image'],
+    #     output_filename=args['output_filename'],
+    #     max_tokens_code=int(args['max_tokens_code']),
+    #     print_prompt=args['print_prompt']
+    # )
     
-    return summary, output_filename, data_patent, top_images
-
+    # return summary, output_filename, data_patent, top_images
+    return 0
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Runs claude with an input config JSON file.")
     parser.add_argument("-i", "--input_json", required=True, help="Path to the JSON config file")

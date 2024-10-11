@@ -95,6 +95,7 @@ class HierarchicalQueryEngine:
 
         # Prepare the prompt for the LLM using the combined response
         input_prompt = PromptTemplate(prompt_template)
+
         
         if print_prompt:
             print(input_prompt.format(information=combined_response))
@@ -102,7 +103,7 @@ class HierarchicalQueryEngine:
         # Query the LLM to generate the summary or answer
         summary = Settings.llm.complete(input_prompt.format(information=combined_response))
 
-        return summary.text
+        return summary.text, input_prompt.format(information=combined_response)
 
     def _format_response(self, nodes: List[NodeWithScore], source: str) -> str:
         """
@@ -141,7 +142,7 @@ def create_document_from_text(text: str) -> Document:
         metadata_seperator='\n'
     )
 
-def run_RAG_pipeline(llm, prompt_template: str, data_patent: dict, print_prompt: bool = False) -> tuple:
+def run_RAG_pipeline(llm, retrieved_images, prompt_template: str, data_patent: dict, print_prompt: bool = False) -> tuple:
     """
     Run the RAG pipeline for patent analysis.
 
@@ -190,10 +191,10 @@ def run_RAG_pipeline(llm, prompt_template: str, data_patent: dict, print_prompt:
     if data_patent['dependent_claims_text']:
         for text in reversed(data_patent['dependent_claims_text']):
             prompt_template = prompt_template.replace("{information}", "{information} \n" + text + "\n ")
-        prompt_template = prompt_template.replace("{information}", "{information} \nDependant claims:\n ") 
+        prompt_template = prompt_template.replace("{information}", "{information} \nDependant claims:\n ")
 
     # Execute the query
-    combined_response = query_engine.query(prompt_template, claim_k=1, additional_k=4, print_prompt=print_prompt)
+    combined_response, input_prompt = query_engine.query(prompt_template, claim_k=1, additional_k=4, print_prompt=print_prompt)
 
     # Extract and parse JSON from the response
     json_start = combined_response.index('{')
@@ -201,4 +202,4 @@ def run_RAG_pipeline(llm, prompt_template: str, data_patent: dict, print_prompt:
     json_str = combined_response[json_start:json_end]
     data_dict = json.loads(json_str)
 
-    return data_dict['summary'], data_dict['reference']
+    return data_dict['summary'], data_dict['reference'], input_prompt

@@ -6,14 +6,14 @@
     "patent_number": "EP4014838A1",
     "claim_number": 1,
     "dependent_claims":true,
-    "field_of_invention": true,
-    "background_of_the_invention": true,
+    "field_of_invention": false,
+    "background_of_the_invention": false,
     "summary_of_the_invention": true,
     "brief_description_of_the_drawings": true,
     "detailed_description_of_the_embodiments": true,
     "retrieve_patent_images": true,
     "retrieve_top_k_images": 3,
-    "output_filename": "./images/{patent_number}.svg",
+    "output_filename": "./images/{patent_number}.svg"
     
      "prompt_template": "You are an expert patent examiner. Summarize the following claim and extract the reference numbers:\n{information}\nReturn the information as a JSON using the following template with fields:\n\"summary\":\"summary description\",\n\"reference\":\n with subfields the reference number \"reference number\":\"reference1\",\n        \"reference number\": \"reference2\"",
     

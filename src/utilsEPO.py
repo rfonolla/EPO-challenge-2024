@@ -73,13 +73,7 @@ def get_dependent_claims(claim_info, claim_number, model_llm):
         dict: Dictionary containing dependent claim numbers.
     """
     # Initialize language model based on the model name
-    if 'claude' in model_llm.lower():
-        llm = Anthropic(model=model_llm, temperature=0.0, max_tokens=1024)
-    elif 'gpt' in model_llm.lower():
-        llm = OpenAI(model=model_llm, temperature=0.0, max_tokens=1024)
-    else:
-        raise ValueError(f"Unsupported model: {model_llm}")
-
+    llm = Anthropic(model=model_llm, temperature=0.0, max_tokens=1024)
     Settings.llm = llm
     
     # Define prompt template for the language model
@@ -199,23 +193,22 @@ def get_patent_info_from_description(query):
         raise ValueError("'description' field is not a dictionary or does not contain 'text': Manually check contents of the patent number")
     
     html_content = query[0]['description']['text']
-
     # Parse HTML content
     soup = BeautifulSoup(html_content, 'html.parser')
     elements = soup.find_all(['heading', 'p'])
-    
+
     # Define standard and alternative headings
     headings_patent = [
-        "FIELD OF THE INVENTION",
-        "BACKGROUND OF THE INVENTION",
-        "SUMMARY OF THE INVENTION",
-        "BRIEF DESCRIPTION OF THE DRAWINGS",
-        "DETAILED DESCRIPTION OF THE EMBODIMENTS",
+        "field of the invention",
+        "background of the invention",
+        "summary of the invention",
+        "brief description of the drawings",
+        "detailed description of the embodiments",
         # Alternative headings
-        "TECHNICAL FIELD AND BACKGROUND",
-        "BRIEF DESCRIPTION OF DRAWINGS",
-        "SUMMARY",
-        "DESCRIPTION OF EMBODIMENTS",
+        "technical field and background",
+        "brief description of drawings",
+        "summary",
+        "description of embodiments",
     ]
     
     patent_dict = {heading: "" for heading in headings_patent}
@@ -225,12 +218,13 @@ def get_patent_info_from_description(query):
     # Extract content for each heading
     for element in elements:
         text = element.text.strip()
-        if text.strip().isupper() and text.strip() in headings_patent:
-            current_heading = text.strip()
-            if current_heading in ["DETAILED DESCRIPTION OF THE EMBODIMENTS", "DESCRIPTION OF EMBODIMENTS"]:
+        if text.strip().lower() in headings_patent:
+            current_heading = text.strip().lower()
+            print(current_heading)
+            if current_heading.lower() in ["detailed description of the embodiments", "description of embodiments"]:
                 detailed_description_found = True
         elif current_heading:
-            if detailed_description_found or current_heading not in ["DETAILED DESCRIPTION OF THE EMBODIMENTS", "DESCRIPTION OF EMBODIMENTS"]:
+            if detailed_description_found or current_heading not in ["detailed description of the embodiments", "description of embodiments"]:
                 patent_dict[current_heading] += f"{text}"
 
     # Clean up the extracted content
@@ -275,6 +269,8 @@ def get_data_from_patent(**kwargs):
         'encoded_image': None
     }
 
+    print('summary invention flag:', summary_of_the_invention)
+
     # Retrieve patent data
     print('Patent number:', search_number)
     q = epab.query_epab_doc_id(search_number)
@@ -311,15 +307,40 @@ def get_data_from_patent(**kwargs):
 
     # Add requested patent description sections to output
     if field_of_invention:
-        output_data['field_of_invention_text'] = patent_desc_info['FIELD OF THE INVENTION']
+        if 'field of the invention' in patent_desc_info:
+            output_data['field_of_invention_text'] = patent_desc_info['field of the invention']
+        elif 'technical field and background' in patent_desc_info:
+            output_data['field_of_invention_text'] = patent_desc_info['technical field and background']
+            
     if background_of_the_invention:
-        output_data['background_of_the_invention_text'] = patent_desc_info['BACKGROUND OF THE INVENTION']
-    if summary_of_the_invention:    
-        output_data['summary_of_the_invention_text'] = patent_desc_info['SUMMARY OF THE INVENTION']
+        if 'background of the invention' in patent_desc_info:
+            output_data['background_of_the_invention_text'] = patent_desc_info['background of the invention']
+        elif 'technical field and background' in patent_desc_info:
+            output_data['background_of_the_invention_text'] = patent_desc_info['technical field and background']
+    
+    if summary_of_the_invention:
+        if 'summary of the invention' in patent_desc_info:
+            output_data['summary_of_the_invention_text'] = patent_desc_info['summary of the invention']
+        elif 'summary' in patent_desc_info:
+            output_data['summary_of_the_invention_text'] = patent_desc_info['summary']
+    
     if brief_description_of_the_drawings:
-        output_data['brief_description_of_the_drawings_text'] = patent_desc_info['BRIEF DESCRIPTION OF THE DRAWINGS']
+        if 'brief description of the drawings' in patent_desc_info:
+            output_data['brief_description_of_the_drawings_text'] = patent_desc_info['brief description of the drawings']
+        elif 'brief description of drawings' in patent_desc_info:
+            output_data['brief_description_of_the_drawings_text'] = patent_desc_info['brief description of drawings']
+    
     if detailed_description_of_the_embodiments:
-        output_data['detailed_description_of_the_embodiments_text'] = patent_desc_info['DETAILED DESCRIPTION OF THE EMBODIMENTS']
+        if 'detailed description of the embodiments' in patent_desc_info:
+            output_data['detailed_description_of_the_embodiments_text'] = patent_desc_info['detailed description of the embodiments']
+        elif 'description of embodiments' in patent_desc_info:
+            output_data['detailed_description_of_the_embodiments_text'] = patent_desc_info['description of embodiments']
+    
+    if detailed_description_of_the_embodiments:
+        if patent_desc_info['detailed description of the embodiments']:
+            output_data['detailed_description_of_the_embodiments_text'] = patent_desc_info['detailed description of the embodiments']
+        elif patent_desc_info['description of embodiments']:
+            output_data['detailed_description_of_the_embodiments_text'] = patent_desc_info['description of embodiments']
 
     # Retrieve and process patent images if requested
     if retrieve_patent_images:
