@@ -3,6 +3,7 @@ import sys
 import json
 import argparse
 import warnings
+from pprint import pprint
 
 # Custom module imports
 from RAG_pipeline import *
@@ -105,9 +106,8 @@ def main(args):
 
 
     print("Patent Claim Summary Evaluation Results:")
-
     results = validation.evaluate_patent_claim_summary(data_patent, summary)
-    print(results)
+    pprint(results, width=100, sort_dicts=False)
 
     return summary, output_filename, data_patent, top_images
     
