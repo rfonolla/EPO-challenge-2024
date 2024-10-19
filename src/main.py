@@ -11,7 +11,9 @@ import utilsEPO
 from image_generation_pipeline import *
 import image_retrieval_pipeline
 from login_claude import *
-
+import validation
+from transformers.utils.logging import disable_progress_bar
+disable_progress_bar()
 # Suppress FutureWarnings
 warnings.simplefilter(action='ignore', category=FutureWarning)
 
@@ -60,7 +62,7 @@ def main(args):
         'claim_number': args['claim_number'],
         'dependent_claims': args['dependent_claims'],
         'field_of_invention': args['field_of_invention'],
-        'background_of_the_invetion': args['background_of_the_invention'],
+        'background_of_the_invention': args['background_of_the_invention'],
         'summary_of_the_invention': args['summary_of_the_invention'],
         'brief_description_of_the_drawings': args['brief_description_of_the_drawings'],
         'detailed_description_of_the_embodiments': args['detailed_description_of_the_embodiments'],
@@ -89,7 +91,7 @@ def main(args):
         )
         top_images = [data_patent['encoded_image'][idx] for idx in top_indices]
         
-        # print('Summarizing claim based on most informative images...')
+        print('Summarizing claim based on most informative images...')
         summary, references = image_retrieval_pipeline.run_summary_with_retrieved_images(input_prompt, top_images, model_llm)
 
     print('Generating image from summary...')
@@ -100,9 +102,15 @@ def main(args):
         max_tokens_code=int(args['max_tokens_code']),
         print_prompt=args['print_prompt']
     )
-    
+
+
+    print("Patent Claim Summary Evaluation Results:")
+
+    results = validation.evaluate_patent_claim_summary(data_patent, summary)
+    print(results)
+
     return summary, output_filename, data_patent, top_images
-    return 0
+    
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Runs claude with an input config JSON file.")
     parser.add_argument("-i", "--input_json", required=True, help="Path to the JSON config file")

@@ -101,7 +101,6 @@ def get_dependent_claims(claim_info, claim_number, model_llm):
     # Filter out invalid dependent claims
     data_dict['dependent_claims'] = [num for num in data_dict['dependent_claims'] if num < claim_number]
 
-    print(data_dict)
     return data_dict
 
 def count_claims(input_text):
@@ -195,6 +194,7 @@ def get_patent_info_from_description(query):
     html_content = query[0]['description']['text']
     # Parse HTML content
     soup = BeautifulSoup(html_content, 'html.parser')
+
     elements = soup.find_all(['heading', 'p'])
 
     # Define standard and alternative headings
@@ -220,7 +220,6 @@ def get_patent_info_from_description(query):
         text = element.text.strip()
         if text.strip().lower() in headings_patent:
             current_heading = text.strip().lower()
-            print(current_heading)
             if current_heading.lower() in ["detailed description of the embodiments", "description of embodiments"]:
                 detailed_description_found = True
         elif current_heading:
@@ -268,8 +267,6 @@ def get_data_from_patent(**kwargs):
         'pil_image': None,
         'encoded_image': None
     }
-
-    print('summary invention flag:', summary_of_the_invention)
 
     # Retrieve patent data
     print('Patent number:', search_number)
