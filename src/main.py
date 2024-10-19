@@ -106,10 +106,10 @@ def main(args):
 
 
     print("Patent Claim Summary Evaluation Results:")
-    results = validation.evaluate_patent_claim_summary(data_patent, summary)
-    pprint(results, width=100, sort_dicts=False)
+    metrics = validation.evaluate_patent_claim_summary(data_patent, summary)
+    pprint(metrics, width=100, sort_dicts=False)
 
-    return summary, output_filename, data_patent, top_images
+    return summary, output_filename, data_patent, top_images, metrics
     
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Runs claude with an input config JSON file.")
