@@ -38,7 +38,7 @@ def execute_dynamic_code(code_str: str) -> int:
     
     return 0  # Return 0 if execution was successful
 
-def generate_image_from_code(input_text: str, prompt_template: str, output_filename: str, max_tokens_code: int, print_prompt: bool) -> str:
+def generate_image_from_code(input_text: str, prompt_template: str, output_filename: str, max_tokens_code: int, print_prompt: bool, timestamp: str) -> str:
     """
     Generate an SVG image from a text description using an LLM.
 
@@ -55,8 +55,6 @@ def generate_image_from_code(input_text: str, prompt_template: str, output_filen
     Settings.llm.max_tokens = max_tokens_code
     input_prompt = PromptTemplate(prompt_template)
     
-    # Get current timestamp
-    timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
     file_format = output_filename[output_filename.rfind('.')+1:]
     output_filename = output_filename.replace('.'+file_format, f'_{timestamp}.{file_format}')
     

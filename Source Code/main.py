@@ -83,7 +83,11 @@ def main(args):
         )
     
     top_images = None
+    timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+
     if args['retrieve_patent_images'] and data_patent['pil_image'] and data_patent['encoded_image']:
+        os.makedirs('./retrieved_images', exist_ok=True)
+
         print('Retrieving most informative images...')
         top_indices = image_retrieval_pipeline.retrieve_similar_images(
             summary, 
@@ -91,6 +95,11 @@ def main(args):
             top_k=int(args['retrieve_top_k_images'])
         )
         top_images = [data_patent['encoded_image'][idx] for idx in top_indices]
+        top_images_pil = [data_patent['pil_image'][idx] for idx in top_indices]
+
+        # Loop through the images and save them as .png files
+        for i, img in enumerate(top_images_pil):
+            img.save('./retrieved_images/'+args['patent_number']+'_'+timestamp+'_top'+str(i)+'.png', format='PNG')
         
         print('Summarizing claim based on most informative images...')
         summary, references = image_retrieval_pipeline.run_summary_with_retrieved_images(input_prompt, top_images, model_llm)
@@ -101,14 +110,31 @@ def main(args):
         prompt_template=args['prompt_template_image'],
         output_filename=args['output_filename'],
         max_tokens_code=int(args['max_tokens_code']),
-        print_prompt=args['print_prompt']
+        print_prompt=args['print_prompt'],
+        timestamp = timestamp
     )
+    
+    os.makedirs('./summary', exist_ok=True)
 
 
     print("Patent Claim Summary Evaluation Results:")
     metrics = validation.evaluate_patent_claim_summary(data_patent, summary)
     pprint(metrics, width=100, sort_dicts=False)
 
+    # Write the results in a json
+    
+    combined_data = {
+        'summary': summary,
+        'metrics': metrics
+    }
+    
+    # Specify the filename
+    filename = './summary/'+args['patent_number']+'_'+timestamp+'.json'
+    
+    # Write the combined data to a JSON file
+    with open(filename, 'w') as file:
+        json.dump(combined_data, file, indent=4)
+        
     return summary, output_filename, data_patent, top_images, metrics
     
 if __name__ == "__main__":
