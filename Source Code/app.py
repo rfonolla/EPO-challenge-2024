@@ -15,7 +15,7 @@ features like claim analysis, figure viewing, and metrics display.
 
 """
 
-class PatentAnalysisWidget:\
+class PatentAnalysisWidget:
     """
     A class that creates an interactive widget interface for patent analysis.
     
@@ -91,7 +91,7 @@ class PatentAnalysisWidget:\
         ], layout=widgets.Layout(padding='20px'))
 
     # Create the main user interface
-    def create_ui(self):\
+    def create_ui(self):
         """Create and layout the main user interface components."""
 
         # Create input widgets based on schema
@@ -290,9 +290,7 @@ class PatentAnalysisWidget:\
     def on_figure_change(self, change):
         """
         Handle figure selection change events.
-        
-        Args:
-            ch
+        """
         if change.new:
             index = int(change.new.split()[-1]) - 1
             self.update_relevant_figure(index)
