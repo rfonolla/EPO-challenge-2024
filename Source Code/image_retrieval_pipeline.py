@@ -10,16 +10,16 @@ import numpy as np
 
 def run_claude_on_image(input_prompt, client: anthropic.Anthropic, input_images: list, model_llm: str) -> str:
     """
-    Run Claude AI on an encoded image.
+    Run Claude AI on an encoded image. This prompt template is dependent on the initial prompt. Do not modify.
 
     Args:
         client (anthropic.Anthropic): Anthropic client instance.
         image_encoded (str): Base64 encoded image data.
 
     Returns:
-        str: JSON string containing extracted figure numbers.
+        str: Return an enhanced summary with the information of the images.
     """
-    user_input = input_prompt.replace('Return the information as a JSON using the following template with fields:', ' The attached retrieved images are the most informative for the claim use them additional information\n Return the information as a JSON using the following template with fields:')
+    user_input = input_prompt.replace('Return the information as a JSON using the following template with fields:', ' The attached retrieved images are the most informative for the claim use them as additional information\n Return the information as a JSON using the following template with fields:')
 
     content = []
 
