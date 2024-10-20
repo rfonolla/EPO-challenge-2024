@@ -21,17 +21,18 @@ This is a Python-based solution with the following features:
 
 ## 🚀 Quick Start
 
+The following commands will quickly set up everything you need. We assume that the base enviroment contains the EPO libraries since these cannot be downloaded with pip
+
 1. Clone the repository:
 ```bash
-git clone https://github.com/yourusername/image-processing-pipeline.git
-```
-
-2. Install dependencies:
-```bash
+git clone https://github.com/epo/CF24-ORBIS-PICTUS-PATENS.git
+conda create --name orbis-pictus --clone base
+conda activate orbis-pictus
+cd CF24-ORBIS-PICTUS-PATENS/Source Code 
 pip install -r requirements.txt
 ```
 
-3. Configure your settings in `config.json`:
+3. Configure your settings in `config.json` or leave it as it is:
 ```json
 {
     "model_llm": "claude-3-5-sonnet-20240620",
