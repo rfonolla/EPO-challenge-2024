@@ -65,12 +65,22 @@ Navigate to Source folder and run the following command:
 ```bash
 python main.py -i config.json
 ```
-As output a set of metrics will be generated, an image in the image folder
-## ⚙️ Configuration
+The resulting output are three folders images, summary and retrieved images.
+- Images contain the generated claim image
+- Summary contains the summary of the claim with the validation metrics
+- Retrieved images contains the top K selected images that are most informative respect to the selected claim.
+
 
 The system uses two configuration files:
 - `config.json`: Main configuration settings
 - `default_config.json`: Default fallback values
+
+5. Run the application via the User Interface.
+
+- We have created a user interface using Pywidget. On the EPO enviroment select VSCode , double click app.py and Run Current File as Interactive Window as Interactive Window
+
+- ![image](https://github.com/user-attachments/assets/aac00e0e-181c-44ff-a233-307d65adb8bc)
+
 
 ## 🗃️ Project Structure
 
