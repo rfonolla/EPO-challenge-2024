@@ -38,21 +38,22 @@ pip install -r requirements.txt
     "temperature": 0.0,
     "max_tokens": 1024,
     "max_tokens_code": 2048,
-    "patent_number": "EP1356755A2",
+    "patent_number": "EP4014838A1",
     "claim_number": 1,
     "dependent_claims":true,
     "field_of_invention": true,
-    "background_of_the_invention": true,
+    "background_of_the_invention": false,
     "summary_of_the_invention": true,
     "brief_description_of_the_drawings": true,
     "detailed_description_of_the_embodiments": true,
     "retrieve_patent_images": true,
     "retrieve_top_k_images": 3,
-    "output_filename": "./images/EP1356755A2.svg",
+    "output_filename": "./images/EP4014838A1.svg",
     
      "prompt_template": "You are an expert patent examiner. Summarize the following claim and extract the reference numbers:\n{information}\nReturn the information as a JSON using the following template with fields:\n\"summary\":\"summary description\",\n\"reference\":\n with subfields the reference number \"reference number\":\"reference1\",\n        \"reference number\": \"reference2\"",
     
     "prompt_template_image": "You are an expert Python developer specializing in SVG image generation.Create a Python script to draw an SVG image for the following claim:\n{information}\nUse the following requirements and return the complete Python script:\nUse the svgwrite library to create the SVG image.\nInclude the title of the invention.\nUse a canvas size of 512x512 pixels\nChoose appropriate shapes for each object in the claim.\nUse distinct colors for each object or category.\n Use arrows to indicate directions when needed.\nInclude a legend that doesn't overlap with the main image.\nEvery element needs to have a legend.\nPosition the legend in the top left corner of the image and make sure it does not fall outside of borders\nUse small icons and text to represent each item in the legend\nAdd appropriate labels or text where necessary to clarify the image.\nEnsure the code is well-commented and easy to understand.\n Do not use mm as position.\n Name the image {output_filename}",
+    
     "print_prompt": false
 }
 
@@ -81,76 +82,41 @@ The system uses two configuration files:
 
 - ![image](https://github.com/user-attachments/assets/aac00e0e-181c-44ff-a233-307d65adb8bc)
 
+Click Submit and wait until the processing is done. The different tabs will be populated based on the selected flags. Enjoy!
 
-## 🗃️ Project Structure
+6. The prompts in this solution have been highly optimized for the purpose of patents and claims. Feel free to play around.
 
-```
-├── images/                  # Image storage directory
-├── app.py                   # Application entry point
-├── config.json             # Configuration file
-├── default_config.json     # Default configuration
-├── image_generation_pipeline.py
-├── image_retrieval_pipeline.py
-├── logging_claude.py       # Logging configuration
-├── main.py                # Main execution file
-├── RAG_pipeline.py        # RAG implementation
-├── utils.py               # Utility functions
-└── validation.py          # Input validation
-```
+![image](https://github.com/user-attachments/assets/d3bd909e-33f5-4c21-880c-762426a42928)
 
-## ⚠️ Common Warnings and Solutions
 
-### Warning: Invalid Image Directory
-```python
-WARNING: Image directory not found at path './images'
-Solution: Create the 'images' directory or update the path in config.json
-```
+## ⚠️ Important information about LLM API, GPU and CPU and more
 
-### Warning: Memory Usage
-```python
-WARNING: High memory usage detected during image processing
-Solution: Adjust batch size in configuration or free up system memory
-```
+### CLAUDE API KEY
 
-## 📝 Example Usage
+Due to the complexity of this project and the limited shared resources of the GPU of the EPO platform we cannot expect to run everything locally. Therefore CLAUDE has been chosen has the preferd LLM to perform our query tasks. Several prompts are designed to obtain relevant information about the claims and patent information. An API Key has been provided which contains enough credits and resources to run the program for plenty of hours and examples!
 
-```python
-from image_generation_pipeline import ImageGenerator
-from config import load_config
+The following points and files utilize Claude API LLM:
 
-# Load configuration
-config = load_config()
 
-# Initialize generator
-generator = ImageGenerator(config)
+- The RAG pipeline in `RAG_pipeline.py` utilizes the claim information in addition to the most important retrieved information from the patent to generate the summary. Which requires a prompt incorporating all the necessary information.
+- The image retrieval pipeline in `image_retrieval_pipeline.py` utilizes CLAUDE to analyze the patent images and enhance the summary. This requires an API call to Claude in addition to a prompt template.
+- The image generation pipeline in `image_generation_pipeline.py` utilizes a prompt to create the code that will generate the patent images.
 
-# Generate image
-result = generator.process_image("input_image.jpg")
-```
+Overall the cost of running this solution is about
 
-## 🔍 Logging
+### Local models and CPU vs GPU
 
-The system uses a structured logging approach through `logging_claude.py`. Logs are stored with timestamps and appropriate log levels:
+Not everything is computed on the cloud. Wherever possible we have implemented local solutions. The following points are run locally:
 
-```python
-INFO: Pipeline initialized successfully
-DEBUG: Processing image batch: 1/10
-ERROR: Failed to process image: invalid format
-```
+- The RAG pipeline in `RAG_pipeline.py` utilizes the package `llama-index` to Vectorize claim information, and the patent information (brief description of embodings, etc). This utilizes a local model dowloaded from Hugging Face ("BAAI/bge-m3")
 
-## 🤝 Contributing
+- The image retrieval pipeline in `image_retrieval_pipeline.py` utilizes openai/clip-vit-large-patch14 from Hugging Face to extract embeddings from a query text (related to the claim) and from the attachments to retrieve the most important and related images given a specific query.
 
-1. Fork the repository
-2. Create your feature branch (`git checkout -b feature/amazing-feature`)
-3. Commit your changes (`git commit -m 'Add amazing feature'`)
-4. Push to the branch (`git push origin feature/amazing-feature`)
-5. Open a Pull Request
+- All this local models run by default on GPU but if the GPU is busy then it will run on CPU (We experienced a high demand of GPU resources)
 
-## 📄 License
+### Automated python code generation
 
-This project is licensed under the MIT License - see the LICENSE file for details.
+An important aspect of this project is the capability to generate images from the claim summary. These images are generated via python code which has been automatically created with LLMS. Somestimes the code will fail BUT DO NOT PANIC if you see an error :), we have incorporated a self mechanism that attempts to correct the code and continues the execution.
 
-## 📬 Contact
 
-Your Name - [@yourusername](https://twitter.com/yourusername)
-Project Link: [https://github.com/yourusername/image-processing-pipeline](https://github.com/yourusername/image-processing-pipeline)
+
